@@ -1,0 +1,290 @@
+import 'package:flutter/material.dart';
+import '../models/day_entry.dart';
+import '../services/storage_service.dart';
+import '../services/health_service.dart';
+import 'day_entry_screen.dart';
+import 'wizard_screen.dart';
+
+class DayListScreen extends StatefulWidget {
+  const DayListScreen({Key? key}) : super(key: key);
+
+  @override
+  _DayListScreenState createState() => _DayListScreenState();
+}
+
+class _DayListScreenState extends State<DayListScreen> {
+  List<DayEntry> _entries = [];
+  final _storageService = StorageService();
+  final _healthService = HealthService();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntries();
+  }
+
+  Future<void> _loadEntries() async {
+    setState(() => _loading = true);
+    final entries = await _storageService.loadAllEntries();
+    // Clean up any legacy data from the old notes format
+    await _storageService.clearLegacyData();
+    setState(() {
+      _entries = entries;
+      _loading = false;
+    });
+  }
+
+  Future<void> _createOrEditToday() async {
+    final todayKey = DayEntry.todayKey();
+    final existing = await _storageService.loadDayEntry(todayKey);
+
+    if (existing != null) {
+      // Entry already exists for today — open it for editing
+      _editEntry(existing);
+      return;
+    }
+
+    // Run the wizard for a new entry
+    final wizardResult = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (context) => const WizardScreen()),
+    );
+    if (wizardResult == null || !mounted) return;
+
+    // Fetch health data
+    final healthMetrics = await _healthService.fetchDayMetrics(DateTime.now());
+
+    final now = DateTime.now();
+    final entry = DayEntry(
+      dateKey: todayKey,
+      timezoneOffset: DayEntry.currentTimezoneOffset(),
+      mood: wizardResult['mood'] ?? 5,
+      sleep: wizardResult['sleep'] ?? 5,
+      xanax: wizardResult['xanax'] ?? '< 0.5',
+      workload: wizardResult['workload'] ?? 5,
+      clouds: wizardResult['clouds'] ?? 0,
+      bubs: wizardResult['bubs'] ?? 5,
+      energy: wizardResult['energy'] ?? 5,
+      steps: healthMetrics.steps,
+      avgHeartRate: healthMetrics.avgHeartRate,
+      sleepMinutes: healthMetrics.sleepMinutes,
+      sleepStages: healthMetrics.sleepStages,
+      content: '',
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    // Open the editor
+    final result = await Navigator.push<DayEntry>(
+      context,
+      MaterialPageRoute(builder: (context) => DayEntryScreen(entry: entry)),
+    );
+
+    if (result != null) {
+      await _storageService.saveDayEntry(result);
+      _loadEntries();
+    }
+  }
+
+  Future<void> _editEntry(DayEntry entry) async {
+    // Re-fetch health data on edit
+    final date = entry.dayRange.start;
+    final healthMetrics = await _healthService.fetchDayMetrics(date);
+
+    final updatedEntry = entry.copyWith(
+      steps: healthMetrics.steps ?? entry.steps,
+      avgHeartRate: healthMetrics.avgHeartRate ?? entry.avgHeartRate,
+      sleepMinutes: healthMetrics.sleepMinutes ?? entry.sleepMinutes,
+      sleepStages: healthMetrics.sleepStages ?? entry.sleepStages,
+      updatedAt: DateTime.now(),
+    );
+
+    if (!mounted) return;
+
+    final result = await Navigator.push<DayEntry>(
+      context,
+      MaterialPageRoute(
+          builder: (context) => DayEntryScreen(entry: updatedEntry)),
+    );
+
+    if (result != null) {
+      await _storageService.saveDayEntry(result);
+      _loadEntries();
+    }
+  }
+
+  void _deleteEntry(String dateKey) async {
+    await _storageService.deleteDayEntry(dateKey);
+    _loadEntries();
+  }
+
+  String _formatDate(String dateKey) {
+    try {
+      final parts = dateKey.split('-');
+      final months = [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final month = months[int.parse(parts[1])];
+      final day = int.parse(parts[2]);
+      final year = parts[0];
+      return '$month $day, $year';
+    } catch (_) {
+      return dateKey;
+    }
+  }
+
+  String _formatSleep(int? minutes) {
+    if (minutes == null) return '--';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return '${h}h ${m}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Daily Journal'),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _entries.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      'No entries yet.\nTap + to start today\'s check-in.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _entries.length,
+                  itemBuilder: (context, index) {
+                    final entry = _entries[index];
+                    return Dismissible(
+                      key: Key(entry.dateKey),
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (direction) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Entry'),
+                            content: Text(
+                                'Delete entry for ${_formatDate(entry.dateKey)}?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete',
+                                    style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      onDismissed: (_) => _deleteEntry(entry.dateKey),
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        child: InkWell(
+                          onTap: () => _editEntry(entry),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Date header
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatDate(entry.dateKey),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Mood: ${entry.mood}/10',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.cyanAccent
+                                            .withValues(alpha: 0.8),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // Health metrics row
+                                Row(
+                                  children: [
+                                    _metricChip(Icons.directions_walk,
+                                        '${entry.steps ?? '--'}'),
+                                    const SizedBox(width: 12),
+                                    _metricChip(Icons.favorite,
+                                        entry.avgHeartRate != null
+                                            ? '${entry.avgHeartRate!.round()} bpm'
+                                            : '--'),
+                                    const SizedBox(width: 12),
+                                    _metricChip(Icons.bedtime,
+                                        _formatSleep(entry.sleepMinutes)),
+                                  ],
+                                ),
+                                // Note preview
+                                if (entry.content.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    entry.content,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createOrEditToday,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _metricChip(IconData icon, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.grey.shade500),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+        ),
+      ],
+    );
+  }
+}
