@@ -8,29 +8,23 @@
 - [ ] **Submit to Play Console** — follow `store/developer_account_guide.md`
 - [ ] **Complete Health Connect declaration** — follow `store/health_connect_declaration.md`
 - [ ] Test on a real device with Health Connect installed
+- [ ] **Change keystore password** (`DJournal2026Secure`) and store in password manager
 
-## Completed ✅
+## Manual Verification Needed
 
-- [x] Health Connect integration (steps, heart rate, sleep)
-- [x] Per-day storage with timezone tracking
-- [x] Bubs wizard field
-- [x] Signing config (release keystore support + ProGuard)
-- [x] App ID changed to `io.gencan.dailyjournal`
-- [x] App name "Daily Journal"
-- [x] Privacy policy created
-- [x] PIN fallback authentication
-- [x] FLAG_SECURE (screenshot protection)
-- [x] Re-lock on app resume
-- [x] `allowBackup=false`
-- [x] Dead code cleanup
-- [x] Store listing text + images
-- [x] Generate keystore (`upload-keystore.jks` exists)
-- [x] Create `android/key.properties` from example
-- [x] Update privacy policy email (google@gencan.io)
-- [x] SQLCipher encrypted database (AES-256 + Android Keystore)
-- [x] Data models: DayEntry, Metrics, DayMetrics, Tags
-- [x] Database migration from flutter_secure_storage
-- [x] Element metrics (Air, Earth, Wind, Fire) with sliders
-- [x] Local NLP keyword extraction (RAKE algorithm)
-- [x] Statistics screen with averages + tag cloud
-- [x] Privacy policy updated for SQLCipher + NLP disclosure
+- [ ] Verify auto-tags still display on `DayEntryScreen` after removing Top Keywords from Statistics (E3-T3)
+- [ ] Verify notification tap → auth → wizard → entry saved flow on device (E4-T6)
+- [ ] Enter 4 wrong PINs and confirm 2s lockout message with disabled numpad (E1-T3)
+- [ ] Create two entries in one day, confirm wizard only appears on first (E4-T2)
+
+## Completed (see CHANGELOG.md for details)
+
+- [x] PIN brute-force protection (E1-T1, E1-T2, E1-T3)
+- [x] Rename `xanax` → `x` model, schema migration, UI (E2-T1 through E2-T5)
+- [x] Sensitive-term blacklist in KeywordExtractor (E3-T1)
+- [x] Remove Top Keywords from StatisticsScreen (E3-T2)
+- [x] Wizard completion tracking in DatabaseService (E4-T1)
+- [x] Decouple wizard from entry creation (E4-T2)
+- [x] Manual Check-In button on DayEntryScreen (E4-T3)
+- [x] flutter_local_notifications dependency + manifest (E4-T4)
+- [x] NotificationService for daily noon reminder (E4-T5)

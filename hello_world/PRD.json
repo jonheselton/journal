@@ -1,0 +1,489 @@
+{
+  "product": "Daily Journal",
+  "version": "1.1.0",
+  "created": "2026-04-18",
+  "status": "in_progress",
+
+  "epics": [
+    {
+      "id": "E1",
+      "title": "PIN Brute-Force Protection",
+      "priority": "high",
+      "tasks": [
+        {
+          "id": "E1-T1",
+          "status": "done",
+          "title": "Add failed attempt counter to PinService",
+          "prompt": "In lib/services/pin_service.dart, add two new secure-storage keys: 'pin_failed_count' (int) and 'pin_lockout_until' (ISO 8601 timestamp). Add methods: getFailedCount(), incrementFailedCount(), getLockoutUntil(), setLockoutUntil(DateTime), and resetFailedAttempts(). All state must persist across app restarts via FlutterSecureStorage.",
+          "files": ["lib/services/pin_service.dart"],
+          "depends_on": [],
+          "tests": {
+            "unit": "test/services/pin_service_test.dart",
+            "cases": [
+              "getFailedCount returns 0 on fresh install",
+              "incrementFailedCount persists across reads",
+              "resetFailedAttempts sets count to 0 and clears lockout",
+              "setLockoutUntil stores and getLockoutUntil retrieves a DateTime"
+            ]
+          },
+          "done_when": "All 4 unit tests pass. flutter analyze reports no errors in pin_service.dart."
+        },
+        {
+          "id": "E1-T2",
+          "status": "done",
+          "title": "Implement escalating lockout logic in PinService",
+          "prompt": "In lib/services/pin_service.dart, add method verifyPinWithRateLimit(String pin) that returns a record (bool success, bool isLocked, int remainingSeconds). Logic: check if currently locked out first. If locked, return locked status with remaining seconds. If not locked, verify PIN. On failure, increment counter and apply lockout: 1-3 failures = no lockout, 4-5 = 2 second lockout, 6-9 = 30 second lockout, 10+ = 300 second (5 min) lockout then reset counter. On success, call resetFailedAttempts().",
+          "files": ["lib/services/pin_service.dart"],
+          "depends_on": ["E1-T1"],
+          "tests": {
+            "unit": "test/services/pin_service_test.dart",
+            "cases": [
+              "3 wrong PINs: no lockout, success=false, isLocked=false",
+              "4th wrong PIN: isLocked=true, remainingSeconds=2",
+              "6th wrong PIN: isLocked=true, remainingSeconds=30",
+              "10th wrong PIN: isLocked=true, remainingSeconds=300",
+              "Correct PIN after failures: success=true, counter resets to 0",
+              "Locked out state: returns isLocked=true without checking PIN"
+            ]
+          },
+          "done_when": "All 6 unit tests pass."
+        },
+        {
+          "id": "E1-T3",
+          "status": "done",
+          "title": "Update PinScreen UI for lockout feedback",
+          "prompt": "In lib/screens/pin_screen.dart, replace the call to _pinService.verifyPin() with verifyPinWithRateLimit(). When isLocked is true: disable all number pad buttons (grey them out), display a countdown message like 'Locked out. Try again in Xs' that updates every second using a periodic Timer. When lockout expires, re-enable the numpad and reset the message to 'Enter your PIN'. On successful verify, call resetFailedAttempts().",
+          "files": ["lib/screens/pin_screen.dart"],
+          "depends_on": ["E1-T2"],
+          "tests": {
+            "widget": "test/screens/pin_screen_test.dart",
+            "cases": [
+              "Number pad is disabled during lockout",
+              "Countdown message displays remaining seconds",
+              "Number pad re-enables after lockout expires",
+              "Successful PIN entry after lockout works normally"
+            ]
+          },
+          "done_when": "Widget tests pass. Manual test: enter 4 wrong PINs and see the 2s lockout message with disabled buttons."
+        }
+      ]
+    },
+
+    {
+      "id": "E2",
+      "title": "Rename xanax → x",
+      "priority": "high",
+      "tasks": [
+        {
+          "id": "E2-T1",
+          "status": "done",
+          "title": "Rename field in DayEntry model",
+          "prompt": "In lib/models/day_entry.dart, rename the field 'xanax' to 'x' everywhere: the class field declaration (String x), constructor parameter, copyWith, toJson, fromJson, toDatabaseMap, fromDatabaseMap. Change the type from String to String with new valid values '1', '2', '3'. Update the default value from '< 0.5' to '1'. In toDatabaseMap use column name 'x'. In fromDatabaseMap read from 'x' with fallback to legacy column 'xanax' for migration compat.",
+          "files": ["lib/models/day_entry.dart"],
+          "depends_on": [],
+          "tests": {
+            "unit": "test/models/day_entry_test.dart",
+            "cases": [
+              "DayEntry constructor accepts x field with values '1','2','3'",
+              "toJson serializes x field as 'x'",
+              "fromJson deserializes 'x' field, defaults to '1' if missing",
+              "fromJson with legacy 'xanax' key: maps '< 0.5' to '1', '0.5 <= 1.0' to '2', '1.0 <= 1.5' to '3', 'None' to '1'",
+              "copyWith works for x field",
+              "toDatabaseMap outputs column 'x'",
+              "fromDatabaseMap reads column 'x'"
+            ]
+          },
+          "done_when": "All 7 unit tests pass. flutter analyze clean on day_entry.dart."
+        },
+        {
+          "id": "E2-T2",
+          "status": "done",
+          "title": "Schema migration v1 → v2 in DatabaseService",
+          "prompt": "In lib/services/database_service.dart, bump _dbVersion to 2. Add onUpgrade parameter to openDatabase. In the upgrade handler for v1→v2: (1) ALTER TABLE day_entries ADD COLUMN x TEXT NOT NULL DEFAULT '1', (2) UPDATE day_entries SET x = CASE WHEN xanax = '< 0.5' THEN '1' WHEN xanax = 'None' THEN '1' WHEN xanax = '0.5 <= 1.0' THEN '2' WHEN xanax = '1.0 <= 1.5' THEN '3' ELSE '1' END, (3) Rebuild table without the xanax column (CREATE new table, INSERT SELECT, DROP old, RENAME). Also update _onCreate to create the table with 'x' instead of 'xanax' for fresh installs.",
+          "files": ["lib/services/database_service.dart"],
+          "depends_on": ["E2-T1"],
+          "tests": {
+            "unit": "test/services/database_migration_test.dart",
+            "cases": [
+              "Fresh install creates day_entries table with 'x' column and no 'xanax' column",
+              "v1→v2 migration: existing row with xanax='< 0.5' has x='1' after migration",
+              "v1→v2 migration: existing row with xanax='0.5 <= 1.0' has x='2' after migration",
+              "v1→v2 migration: existing row with xanax='1.0 <= 1.5' has x='3' after migration",
+              "v1→v2 migration: existing row with xanax='None' has x='1' after migration",
+              "After migration, xanax column no longer exists"
+            ]
+          },
+          "done_when": "All 6 migration tests pass. Existing test suite still passes."
+        },
+        {
+          "id": "E2-T3",
+          "status": "done",
+          "title": "Update WizardScreen radio buttons and tooltip",
+          "prompt": "In lib/screens/wizard_screen.dart: (1) Rename _xanax to _x, default '1'. (2) Change _buildRadioPage title from 'Xanax?' to 'X'. (3) Replace radio options: value '1' label '1', value '2' label '2', value '3' label '3'. Remove the 'None' option. (4) Add an IconButton with Icons.info_outline in the top-right corner of the radio page. On tap, show a tooltip or dialog: '1 = 0, 2 = < 1, 3 = > 1'. (5) Update _finishWizard to pass 'x': _x in the result map.",
+          "files": ["lib/screens/wizard_screen.dart"],
+          "depends_on": [],
+          "tests": {
+            "widget": "test/screens/wizard_screen_test.dart",
+            "cases": [
+              "Radio page shows title 'X' not 'Xanax?'",
+              "Three radio buttons with labels '1', '2', '3' are present",
+              "No radio button with label 'None' or '< 0.5' exists",
+              "Info icon button is visible on the radio page",
+              "Tapping info icon shows tooltip text '1 = 0, 2 = < 1, 3 = > 1'",
+              "Finishing wizard returns map with 'x' key"
+            ]
+          },
+          "done_when": "All 6 widget tests pass."
+        },
+        {
+          "id": "E2-T4",
+          "status": "done",
+          "title": "Update DayListScreen to pass x from wizard result",
+          "prompt": "In lib/screens/day_list_screen.dart, find the line that reads wizardResult['xanax'] (approx line 85) and change it to wizardResult['x'] ?? '1'.",
+          "files": ["lib/screens/day_list_screen.dart"],
+          "depends_on": ["E2-T1", "E2-T3"],
+          "tests": {
+            "static": "flutter analyze",
+            "cases": [
+              "No references to 'xanax' remain in day_list_screen.dart",
+              "flutter analyze reports no errors"
+            ]
+          },
+          "done_when": "grep -c 'xanax' lib/screens/day_list_screen.dart returns 0. flutter analyze clean."
+        },
+        {
+          "id": "E2-T5",
+          "status": "done",
+          "title": "Update DayEntryScreen display chip",
+          "prompt": "In lib/screens/day_entry_screen.dart, change _wizardTag('Xanax', entry.xanax) to _wizardTag('X', entry.x).",
+          "files": ["lib/screens/day_entry_screen.dart"],
+          "depends_on": ["E2-T1"],
+          "tests": {
+            "static": "flutter analyze",
+            "cases": [
+              "No references to 'xanax' remain in day_entry_screen.dart",
+              "flutter analyze reports no errors"
+            ]
+          },
+          "done_when": "grep -c 'xanax' lib/screens/day_entry_screen.dart returns 0. flutter analyze clean."
+        }
+      ]
+    },
+
+    {
+      "id": "E3",
+      "title": "Keyword Privacy",
+      "priority": "medium",
+      "tasks": [
+        {
+          "id": "E3-T1",
+          "status": "done",
+          "title": "Add sensitive-term blacklist to KeywordExtractor",
+          "prompt": "In lib/services/keyword_extractor.dart, add a static const Set<String> _sensitiveTerms containing common sensitive categories: medication names (e.g. xanax, adderall, prozac, lexapro, zoloft, ambien, klonopin, valium, oxycodone, vicodin, suboxone), financial terms (e.g. debt, bankruptcy, loan, mortgage, overdue, collections), and relationship terms (e.g. divorce, affair, custody, abuse, assault, restraining). Add an optional parameter 'bool filterSensitive = true' to the extract() method. When true, filter out any extracted keyword that contains a term from _sensitiveTerms as a substring.",
+          "files": ["lib/services/keyword_extractor.dart"],
+          "depends_on": [],
+          "tests": {
+            "unit": "test/services/keyword_extractor_test.dart",
+            "cases": [
+              "Text containing 'xanax' does not produce 'xanax' as a keyword",
+              "Text containing 'prozac' does not produce 'prozac' as a keyword",
+              "Text containing 'debt' does not produce 'debt' as a keyword",
+              "Normal text like 'morning exercise routine' still extracts 'exercise' and 'routine'",
+              "filterSensitive=false bypasses the blacklist and returns sensitive terms",
+              "Blacklist matching is case-insensitive"
+            ]
+          },
+          "done_when": "All 6 unit tests pass."
+        },
+        {
+          "id": "E3-T2",
+          "status": "done",
+          "title": "Remove Top Keywords from StatisticsScreen",
+          "prompt": "In lib/screens/statistics_screen.dart, remove the 'Top Keywords' section entirely: delete the _topTags state variable, remove the getTopTags() call from _loadStats(), and remove the conditional block that renders _buildSectionHeader('Top Keywords'...) and _buildTagCloud(). Delete the _buildTagCloud() method.",
+          "files": ["lib/screens/statistics_screen.dart"],
+          "depends_on": [],
+          "tests": {
+            "static": "flutter analyze",
+            "cases": [
+              "No references to 'topTags', 'getTopTags', 'buildTagCloud', or 'Top Keywords' in statistics_screen.dart",
+              "flutter analyze reports no errors",
+              "StatisticsScreen still builds and shows entry count, wizard averages, and element averages"
+            ]
+          },
+          "done_when": "grep for 'topTags\\|Top Keywords\\|TagCloud' in statistics_screen.dart returns 0 matches. flutter analyze clean."
+        },
+        {
+          "id": "E3-T3",
+          "status": "pending_verification",
+          "title": "Verify keywords still display on DayEntryScreen",
+          "prompt": "Verify that lib/screens/day_entry_screen.dart already renders auto-tags via _buildTagsCard() using loadDayEntryTags(). No code change needed — this is a verification-only task to confirm keywords are visible when drilling into a specific day.",
+          "files": ["lib/screens/day_entry_screen.dart"],
+          "depends_on": ["E3-T2"],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "Open a day entry that has journal content with extracted tags",
+              "Confirm the 'Auto-Tags' card is visible on the DayEntryScreen",
+              "Confirm the Statistics screen no longer shows any keywords"
+            ]
+          },
+          "done_when": "Manual verification confirms tags appear on day detail but not on statistics."
+        }
+      ]
+    },
+
+    {
+      "id": "E4",
+      "title": "Questionnaire Trigger Rework",
+      "priority": "medium",
+      "tasks": [
+        {
+          "id": "E4-T1",
+          "status": "done",
+          "title": "Add wizard completion tracking to DatabaseService",
+          "prompt": "In lib/services/database_service.dart, add a method hasCompletedWizardToday() that checks if a day_entries row exists for today's dateKey with non-default wizard values (i.e., the row was created via the wizard, not just a blank entry). Also add getWizardDataForToday() that returns the wizard fields (mood, sleep, x, workload, clouds, bubs, energy) from today's entry, or null if no wizard has been completed today.",
+          "files": ["lib/services/database_service.dart"],
+          "depends_on": ["E2-T2"],
+          "tests": {
+            "unit": "test/services/database_service_test.dart",
+            "cases": [
+              "hasCompletedWizardToday returns false when no entry exists for today",
+              "hasCompletedWizardToday returns true when an entry with non-default wizard values exists",
+              "getWizardDataForToday returns null when no entry exists",
+              "getWizardDataForToday returns wizard field map when entry exists"
+            ]
+          },
+          "done_when": "All 4 unit tests pass."
+        },
+        {
+          "id": "E4-T2",
+          "status": "done",
+          "title": "Decouple wizard from entry creation in DayListScreen",
+          "prompt": "In lib/screens/day_list_screen.dart, refactor the new-entry flow: (1) When creating a new entry, check hasCompletedWizardToday(). (2) If wizard is done: create the entry using getWizardDataForToday() values without showing the wizard. (3) If wizard is not done: show the wizard as before, then create the entry. (4) Allow creating multiple entries per day — change the unique constraint behavior so additional entries for the same dateKey update the existing row's content (append or navigate to the existing entry for editing).",
+          "files": ["lib/screens/day_list_screen.dart"],
+          "depends_on": ["E4-T1"],
+          "tests": {
+            "widget": "test/screens/day_list_screen_test.dart",
+            "cases": [
+              "First entry of the day: wizard is shown",
+              "Second entry of the day: wizard is NOT shown, existing wizard data is used",
+              "New entry navigates to DayEntryScreen for content editing"
+            ]
+          },
+          "done_when": "Widget tests pass. Manual test: create two entries in one day, wizard only appears on first."
+        },
+        {
+          "id": "E4-T3",
+          "status": "done",
+          "title": "Add manual Check-In button to DayEntryScreen",
+          "prompt": "In lib/screens/day_entry_screen.dart, add a FloatingActionButton or an icon button in the app bar with Icons.psychology and tooltip 'Daily Check-In'. On tap: (1) Check hasCompletedWizardToday(). (2) If already done, show a dialog: 'Check-in already completed today. Redo?' with Cancel/Redo buttons. (3) If not done or user chooses Redo, launch WizardScreen and update the current entry's wizard fields with the result.",
+          "files": ["lib/screens/day_entry_screen.dart"],
+          "depends_on": ["E4-T1", "E2-T3"],
+          "tests": {
+            "widget": "test/screens/day_entry_screen_test.dart",
+            "cases": [
+              "Check-In button is visible on DayEntryScreen",
+              "Tapping Check-In when wizard not done today launches WizardScreen",
+              "Tapping Check-In when wizard already done shows confirmation dialog",
+              "After completing wizard from entry screen, wizard fields update"
+            ]
+          },
+          "done_when": "Widget tests pass."
+        },
+        {
+          "id": "E4-T4",
+          "status": "done",
+          "title": "Add flutter_local_notifications dependency",
+          "prompt": "Run: flutter pub add flutter_local_notifications. Then in android/app/src/main/AndroidManifest.xml, add the required permissions: RECEIVE_BOOT_COMPLETED, SCHEDULE_EXACT_ALARM, POST_NOTIFICATIONS. Add the notification channel receiver entries per the flutter_local_notifications setup docs.",
+          "files": [
+            "pubspec.yaml",
+            "android/app/src/main/AndroidManifest.xml"
+          ],
+          "depends_on": [],
+          "tests": {
+            "static": "flutter pub get && flutter analyze",
+            "cases": [
+              "flutter pub get succeeds with no errors",
+              "flutter analyze reports no errors",
+              "AndroidManifest contains SCHEDULE_EXACT_ALARM permission"
+            ]
+          },
+          "done_when": "flutter pub get and flutter analyze both succeed."
+        },
+        {
+          "id": "E4-T5",
+          "status": "done",
+          "title": "Create NotificationService for daily noon reminder",
+          "prompt": "Create lib/services/notification_service.dart. Implement a NotificationService singleton with: (1) init() — initialize flutter_local_notifications with an Android channel 'daily_checkin'. (2) scheduleDailyNoonReminder() — schedule a daily repeating notification at 12:00 local time with title 'Daily Check-In' and body 'Time for your daily journal check-in'. (3) cancelReminder(). Call init() and scheduleDailyNoonReminder() from main.dart on app startup.",
+          "files": [
+            "lib/services/notification_service.dart",
+            "lib/main.dart"
+          ],
+          "depends_on": ["E4-T4"],
+          "tests": {
+            "unit": "test/services/notification_service_test.dart",
+            "cases": [
+              "NotificationService.init() completes without error",
+              "scheduleDailyNoonReminder() schedules a notification (mock verification)",
+              "cancelReminder() cancels pending notifications"
+            ]
+          },
+          "done_when": "Unit tests pass. Manual test on device: set phone clock to 11:59, wait for notification at 12:00."
+        },
+        {
+          "id": "E4-T6",
+          "status": "pending_verification",
+          "title": "Handle notification tap to open wizard",
+          "prompt": "In lib/services/notification_service.dart, configure the notification's onSelectNotification callback to navigate to WizardScreen (or set a flag that main.dart checks on resume). In lib/main.dart, handle the notification tap payload to navigate to the wizard screen after authentication completes.",
+          "files": [
+            "lib/services/notification_service.dart",
+            "lib/main.dart"
+          ],
+          "depends_on": ["E4-T5"],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "Tapping the noon notification opens the app",
+              "After authentication, the wizard screen is displayed",
+              "Completing the wizard creates/updates today's entry with wizard data"
+            ]
+          },
+          "done_when": "Manual verification on device confirms full flow: notification → auth → wizard → entry saved."
+        }
+      ]
+    },
+
+    {
+      "id": "E5",
+      "title": "Play Store Publishing",
+      "priority": "low",
+      "tasks": [
+        {
+          "id": "E5-T1",
+          "status": "not_started",
+          "title": "Host privacy policy",
+          "prompt": "Deploy the existing privacy policy to a public URL using GitHub Pages or a static hosting service.",
+          "files": [],
+          "depends_on": [],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "Privacy policy URL is publicly accessible via HTTPS",
+              "Page content matches the latest privacy policy text"
+            ]
+          },
+          "done_when": "Privacy policy is live at a public HTTPS URL."
+        },
+        {
+          "id": "E5-T2",
+          "status": "not_started",
+          "title": "Register Google Play Developer account",
+          "prompt": "Register at play.google.com/console. Pay the $25 fee. Complete identity verification if required.",
+          "files": [],
+          "depends_on": [],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "Play Console dashboard is accessible",
+              "Account identity verification is complete"
+            ]
+          },
+          "done_when": "Play Console shows active developer account."
+        },
+        {
+          "id": "E5-T3",
+          "status": "not_started",
+          "title": "Build release AAB",
+          "prompt": "Run: flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info. Verify the AAB is produced at build/app/outputs/bundle/release/app-release.aab.",
+          "files": [],
+          "depends_on": ["E1-T3", "E2-T5", "E3-T2", "E4-T6"],
+          "tests": {
+            "command": "flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info",
+            "cases": [
+              "Build completes without errors",
+              "AAB file exists at build/app/outputs/bundle/release/app-release.aab",
+              "File size is reasonable (< 50MB)"
+            ]
+          },
+          "done_when": "AAB file is produced successfully."
+        },
+        {
+          "id": "E5-T4",
+          "status": "not_started",
+          "title": "Submit to Play Console",
+          "prompt": "Follow store/developer_account_guide.md to upload the AAB, fill in the store listing, set the privacy policy URL, and submit for review.",
+          "files": [],
+          "depends_on": ["E5-T1", "E5-T2", "E5-T3"],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "App is uploaded to Play Console",
+              "Store listing is complete with screenshots and description",
+              "Privacy policy URL is linked",
+              "App is submitted for review"
+            ]
+          },
+          "done_when": "App status in Play Console shows 'In review' or 'Published'."
+        },
+        {
+          "id": "E5-T5",
+          "status": "not_started",
+          "title": "Complete Health Connect declaration",
+          "prompt": "Follow store/health_connect_declaration.md to complete the Health Connect permissions declaration in the Play Console.",
+          "files": [],
+          "depends_on": ["E5-T4"],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "Health Connect declaration is submitted in Play Console",
+              "All required data types (steps, heart rate, sleep) are declared"
+            ]
+          },
+          "done_when": "Health Connect declaration shows as complete in Play Console."
+        },
+        {
+          "id": "E5-T6",
+          "status": "not_started",
+          "title": "Test on real device with Health Connect",
+          "prompt": "Install the release build on a physical Android device with Health Connect. Verify: (1) Steps data pulls correctly. (2) Heart rate data displays. (3) Sleep data displays with stages. (4) App authenticates and locks correctly. (5) Data persists in encrypted DB.",
+          "files": [],
+          "depends_on": ["E5-T3"],
+          "tests": {
+            "manual": true,
+            "cases": [
+              "App installs from AAB on physical device",
+              "Health Connect permissions are requested and granted",
+              "Steps, heart rate, and sleep data appear on day entry",
+              "PIN/biometric auth works",
+              "Data is retained after force-closing and reopening"
+            ]
+          },
+          "done_when": "All 5 manual test cases pass on a physical device."
+        }
+      ]
+    }
+  ],
+
+  "execution_order": [
+    {"phase": 1, "parallel": ["E1-T1", "E2-T1", "E2-T3", "E3-T1", "E3-T2", "E4-T4"], "label": "Independent foundation tasks"},
+    {"phase": 2, "parallel": ["E1-T2", "E2-T2", "E2-T4", "E2-T5", "E3-T3"], "label": "Dependent model/service changes"},
+    {"phase": 3, "parallel": ["E1-T3", "E4-T1", "E4-T5"], "label": "UI updates and notification setup"},
+    {"phase": 4, "parallel": ["E4-T2", "E4-T3"], "label": "Wizard trigger rework"},
+    {"phase": 5, "parallel": ["E4-T6"], "label": "Notification deep link"},
+    {"phase": 6, "sequential": ["E5-T1", "E5-T2", "E5-T3", "E5-T4", "E5-T5", "E5-T6"], "label": "Play Store publishing (manual)"}
+  ],
+
+  "global_verification": {
+    "commands": [
+      "flutter analyze",
+      "flutter test",
+      "flutter build apk --debug"
+    ],
+    "criteria": [
+      "Zero analyzer warnings or errors",
+      "All unit and widget tests pass",
+      "Debug APK builds successfully",
+      "No references to 'xanax' remain in lib/ directory (grep -r 'xanax' lib/ returns empty)"
+    ]
+  }
+}

@@ -15,7 +15,7 @@ class _WizardScreenState extends State<WizardScreen> {
   // Wizard Data
   double _mood = 5;
   double _sleep = 5;
-  String _xanax = '< 0.5';
+  String _x = '1';
   double _workload = 5;
   double _clouds = 0;
   double _bubs = 5;
@@ -36,7 +36,7 @@ class _WizardScreenState extends State<WizardScreen> {
     final result = <String, dynamic>{
       'mood': _mood.toInt(),
       'sleep': _sleep.toInt(),
-      'xanax': _xanax,
+      'x': _x,
       'workload': _workload.toInt(),
       'clouds': _clouds.toInt(),
       'bubs': _bubs.toInt(),
@@ -93,41 +93,62 @@ class _WizardScreenState extends State<WizardScreen> {
     );
   }
 
+  void _showInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('X Scale'),
+        content: const Text('1 = 0\n2 = < 1\n3 = > 1'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRadioPage() {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'Xanax?',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'X',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.info_outline, color: Colors.cyanAccent),
+                tooltip: '1 = 0, 2 = < 1, 3 = > 1',
+                onPressed: _showInfoDialog,
+              ),
+            ],
           ),
           const SizedBox(height: 32),
           RadioListTile<String>(
-            title: const Text('< 0.5'),
-            value: '< 0.5',
-            groupValue: _xanax,
-            onChanged: (val) => setState(() => _xanax = val!),
+            title: const Text('1'),
+            value: '1',
+            groupValue: _x,
+            onChanged: (val) => setState(() => _x = val!),
           ),
           RadioListTile<String>(
-            title: const Text('0.5 <= 1.0'),
-            value: '0.5 <= 1.0',
-            groupValue: _xanax,
-            onChanged: (val) => setState(() => _xanax = val!),
+            title: const Text('2'),
+            value: '2',
+            groupValue: _x,
+            onChanged: (val) => setState(() => _x = val!),
           ),
           RadioListTile<String>(
-            title: const Text('1.0 <= 1.5'),
-            value: '1.0 <= 1.5',
-            groupValue: _xanax,
-            onChanged: (val) => setState(() => _xanax = val!),
-          ),
-          RadioListTile<String>(
-            title: const Text('None'),
-            value: 'None',
-            groupValue: _xanax,
-            onChanged: (val) => setState(() => _xanax = val!),
+            title: const Text('3'),
+            value: '3',
+            groupValue: _x,
+            onChanged: (val) => setState(() => _x = val!),
           ),
           const SizedBox(height: 16),
           Text(

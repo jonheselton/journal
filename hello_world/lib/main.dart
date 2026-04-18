@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'screens/auth_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications and schedule daily reminder
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.scheduleDailyNoonReminder();
+
   runApp(const NoteApp());
 }
 

@@ -66,12 +66,24 @@ class _DayListScreenState extends State<DayListScreen> {
       return;
     }
 
-    // Run the wizard for a new entry
-    final wizardResult = await Navigator.push<Map<String, dynamic>>(
-      context,
-      MaterialPageRoute(builder: (context) => const WizardScreen()),
-    );
-    if (wizardResult == null || !mounted) return;
+    // Check if wizard has been completed today (from a previous entry)
+    Map<String, dynamic>? wizardData;
+    final wizardDone = await _db.hasCompletedWizardToday();
+
+    if (wizardDone) {
+      // Reuse today's wizard data without re-showing the wizard
+      wizardData = await _db.getWizardDataForToday();
+    }
+
+    if (wizardData == null) {
+      // Run the wizard for a new entry
+      final wizardResult = await Navigator.push<Map<String, dynamic>>(
+        context,
+        MaterialPageRoute(builder: (context) => const WizardScreen()),
+      );
+      if (wizardResult == null || !mounted) return;
+      wizardData = wizardResult;
+    }
 
     // Fetch health data
     final healthMetrics = await _healthService.fetchDayMetrics(DateTime.now());
@@ -80,13 +92,13 @@ class _DayListScreenState extends State<DayListScreen> {
     final entry = DayEntry(
       dateKey: todayKey,
       timezoneOffset: DayEntry.currentTimezoneOffset(),
-      mood: wizardResult['mood'] ?? 5,
-      sleep: wizardResult['sleep'] ?? 5,
-      xanax: wizardResult['xanax'] ?? '< 0.5',
-      workload: wizardResult['workload'] ?? 5,
-      clouds: wizardResult['clouds'] ?? 0,
-      bubs: wizardResult['bubs'] ?? 5,
-      energy: wizardResult['energy'] ?? 5,
+      mood: wizardData['mood'] ?? 5,
+      sleep: wizardData['sleep'] ?? 5,
+      x: wizardData['x'] ?? '1',
+      workload: wizardData['workload'] ?? 5,
+      clouds: wizardData['clouds'] ?? 0,
+      bubs: wizardData['bubs'] ?? 5,
+      energy: wizardData['energy'] ?? 5,
       steps: healthMetrics.steps,
       avgHeartRate: healthMetrics.avgHeartRate,
       sleepMinutes: healthMetrics.sleepMinutes,
@@ -97,6 +109,7 @@ class _DayListScreenState extends State<DayListScreen> {
     );
 
     // Open the editor
+    if (!mounted) return;
     final result = await Navigator.push<DayEntry>(
       context,
       MaterialPageRoute(builder: (context) => DayEntryScreen(entry: entry)),
