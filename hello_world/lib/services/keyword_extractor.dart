@@ -34,9 +34,37 @@ class KeywordExtractor {
     'right', 'left', 'last', 'next', 'first',
   };
 
+  /// Sensitive terms that should be filtered from extracted keywords.
+  /// Includes medication names, financial terms, and relationship terms.
+  static const Set<String> _sensitiveTerms = {
+    // Medications
+    'xanax', 'adderall', 'prozac', 'lexapro', 'zoloft', 'ambien',
+    'klonopin', 'valium', 'oxycodone', 'vicodin', 'suboxone',
+    // Financial
+    'debt', 'bankruptcy', 'loan', 'mortgage', 'overdue', 'collections',
+    // Relationship
+    'divorce', 'affair', 'custody', 'abuse', 'assault', 'restraining',
+  };
+
+  /// Check if a keyword contains any sensitive term as a substring.
+  static bool _containsSensitiveTerm(String keyword) {
+    final lower = keyword.toLowerCase();
+    for (final term in _sensitiveTerms) {
+      if (lower.contains(term)) return true;
+    }
+    return false;
+  }
+
   /// Extract keywords from the given text using a simplified RAKE algorithm.
   /// Returns a list of keywords sorted by relevance (most relevant first).
-  static List<String> extract(String text, {int maxKeywords = 10}) {
+  ///
+  /// When [filterSensitive] is true (default), keywords containing terms from
+  /// the sensitive-term blacklist are excluded from results.
+  static List<String> extract(
+    String text, {
+    int maxKeywords = 10,
+    bool filterSensitive = true,
+  }) {
     if (text.trim().isEmpty) return [];
 
     // Normalize text
@@ -90,6 +118,8 @@ class KeywordExtractor {
       final keyword = entry.key.trim();
       if (keyword.length < 3) continue;
       if (seen.contains(keyword)) continue;
+      // Apply sensitive-term filter
+      if (filterSensitive && _containsSensitiveTerm(keyword)) continue;
       seen.add(keyword);
       results.add(keyword);
       if (results.length >= maxKeywords) break;

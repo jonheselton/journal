@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 
-/// Displays aggregated statistics: wizard averages, custom metric averages,
-/// and top NLP-extracted tags.
+/// Displays aggregated statistics: wizard averages and custom metric averages.
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({Key? key}) : super(key: key);
 
@@ -16,7 +15,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   int _entryCount = 0;
   Map<String, double> _wizardAverages = {};
   Map<String, double> _metricAverages = {};
-  List<Map<String, dynamic>> _topTags = [];
 
   @override
   void initState() {
@@ -30,13 +28,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       final count = await _db.getEntryCount();
       final wizard = await _db.getWizardAverages();
       final metrics = await _db.getMetricAverages();
-      final tags = await _db.getTopTags(limit: 15);
       if (!mounted) return;
       setState(() {
         _entryCount = count;
         _wizardAverages = wizard;
         _metricAverages = metrics;
-        _topTags = tags;
         _loading = false;
       });
     } catch (e) {
@@ -83,12 +79,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         const SizedBox(height: 8),
                         _buildBarChart(_metricAverages, maxValue: 10),
                         const SizedBox(height: 20),
-                      ],
-                      // Top Tags
-                      if (_topTags.isNotEmpty) ...[
-                        _buildSectionHeader('Top Keywords', Icons.label),
-                        const SizedBox(height: 8),
-                        _buildTagCloud(),
                       ],
                     ],
                   ),
@@ -198,44 +188,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ),
                   ),
                 ],
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTagCloud() {
-    final maxCount = _topTags.isNotEmpty
-        ? (_topTags.first['count'] as int)
-        : 1;
-    return Card(
-      color: Colors.grey.shade900,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _topTags.map((tag) {
-            final text = tag['text'] as String;
-            final count = tag['count'] as int;
-            final opacity = 0.4 + (0.6 * count / maxCount);
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.cyanAccent.withValues(alpha: opacity * 0.2),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.cyanAccent.withValues(alpha: opacity * 0.5),
-                ),
-              ),
-              child: Text(
-                '$text ($count)',
-                style: TextStyle(
-                  fontSize: 12 + (opacity * 2),
-                  color: Colors.cyanAccent.withValues(alpha: opacity),
-                ),
               ),
             );
           }).toList(),

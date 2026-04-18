@@ -4,6 +4,7 @@ import '../models/day_entry.dart';
 import '../models/metric.dart';
 import '../models/tag.dart';
 import '../services/database_service.dart';
+import 'wizard_screen.dart';
 
 class DayEntryScreen extends StatefulWidget {
   final DayEntry entry;
@@ -16,6 +17,7 @@ class DayEntryScreen extends StatefulWidget {
 
 class _DayEntryScreenState extends State<DayEntryScreen> {
   late TextEditingController _contentController;
+  late DayEntry _currentEntry;
   bool _isPreviewMode = false;
   final _db = DatabaseService();
 
@@ -28,9 +30,10 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
   @override
   void initState() {
     super.initState();
-    _contentController = TextEditingController(text: widget.entry.content);
+    _currentEntry = widget.entry;
+    _contentController = TextEditingController(text: _currentEntry.content);
     // Start in preview/view mode if there's already content
-    _isPreviewMode = widget.entry.content.isNotEmpty;
+    _isPreviewMode = _currentEntry.content.isNotEmpty;
     _loadMetricsAndTags();
   }
 
@@ -41,9 +44,9 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
       List<Tag> tags = [];
 
       // If editing an existing entry, load its metric values and tags
-      if (widget.entry.id != null) {
-        values = await _db.loadDayMetrics(widget.entry.id!);
-        tags = await _db.loadDayEntryTags(widget.entry.id!);
+      if (_currentEntry.id != null) {
+        values = await _db.loadDayMetrics(_currentEntry.id!);
+        tags = await _db.loadDayEntryTags(_currentEntry.id!);
       }
 
       // Default unset metrics to 5
@@ -71,7 +74,7 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
   }
 
   void _save() {
-    final updatedEntry = widget.entry.copyWith(
+    final updatedEntry = _currentEntry.copyWith(
       content: _contentController.text,
       updatedAt: DateTime.now(),
     );
@@ -90,6 +93,54 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
         debugPrint('Error saving metrics: $e');
       }
     }
+  }
+
+  /// Launch the daily check-in wizard, with a redo confirmation if already done.
+  Future<void> _launchCheckIn() async {
+    final alreadyDone = await _db.hasCompletedWizardToday();
+
+    if (alreadyDone) {
+      // Show confirmation dialog
+      final redo = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Daily Check-In'),
+          content: const Text('Check-in already completed today. Redo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Redo'),
+            ),
+          ],
+        ),
+      );
+      if (redo != true || !mounted) return;
+    }
+
+    // Launch wizard
+    final wizardResult = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (context) => const WizardScreen()),
+    );
+    if (wizardResult == null || !mounted) return;
+
+    // Update current entry with new wizard data
+    setState(() {
+      _currentEntry = _currentEntry.copyWith(
+        mood: wizardResult['mood'] ?? _currentEntry.mood,
+        sleep: wizardResult['sleep'] ?? _currentEntry.sleep,
+        x: wizardResult['x'] ?? _currentEntry.x,
+        workload: wizardResult['workload'] ?? _currentEntry.workload,
+        clouds: wizardResult['clouds'] ?? _currentEntry.clouds,
+        bubs: wizardResult['bubs'] ?? _currentEntry.bubs,
+        energy: wizardResult['energy'] ?? _currentEntry.energy,
+        updatedAt: DateTime.now(),
+      );
+    });
   }
 
   String _formatDate(String dateKey) {
@@ -144,11 +195,16 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final entry = widget.entry;
+    final entry = _currentEntry;
     return Scaffold(
       appBar: AppBar(
         title: Text(_formatDate(entry.dateKey)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.psychology),
+            tooltip: 'Daily Check-In',
+            onPressed: _launchCheckIn,
+          ),
           IconButton(
             icon: Icon(_isPreviewMode ? Icons.edit : Icons.preview),
             tooltip: _isPreviewMode ? 'Edit' : 'Preview',
@@ -304,7 +360,7 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
               children: [
                 _wizardChip('Mood', entry.mood),
                 _wizardChip('Sleep', entry.sleep),
-                _wizardTag('Xanax', entry.xanax),
+                _wizardTag('X', entry.x),
                 _wizardChip('Work', entry.workload),
                 _wizardChip('Clouds', entry.clouds),
                 _wizardChip('Bubs', entry.bubs),

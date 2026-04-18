@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/pin_service.dart';
@@ -20,6 +21,9 @@ class _PinScreenState extends State<PinScreen> {
   String? _firstPin; // used during setup for confirmation
   String _message = '';
   bool _isConfirming = false;
+  bool _isLockedOut = false;
+  int _lockoutRemaining = 0;
+  Timer? _lockoutTimer;
 
   @override
   void initState() {
@@ -27,7 +31,42 @@ class _PinScreenState extends State<PinScreen> {
     _message = widget.isSetup ? 'Create a PIN' : 'Enter your PIN';
   }
 
+  @override
+  void dispose() {
+    _lockoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startLockoutCountdown(int seconds) {
+    setState(() {
+      _isLockedOut = true;
+      _lockoutRemaining = seconds;
+      _pin = '';
+      _message = 'Locked out. Try again in ${_lockoutRemaining}s';
+    });
+
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _lockoutRemaining--;
+        if (_lockoutRemaining <= 0) {
+          _isLockedOut = false;
+          _lockoutRemaining = 0;
+          _message = 'Enter your PIN';
+          timer.cancel();
+        } else {
+          _message = 'Locked out. Try again in ${_lockoutRemaining}s';
+        }
+      });
+    });
+  }
+
   void _onDigit(String digit) {
+    if (_isLockedOut) return;
     if (_pin.length >= 6) return;
     setState(() => _pin += digit);
     if (_pin.length == 4) {
@@ -36,6 +75,7 @@ class _PinScreenState extends State<PinScreen> {
   }
 
   void _onBackspace() {
+    if (_isLockedOut) return;
     if (_pin.isEmpty) return;
     setState(() => _pin = _pin.substring(0, _pin.length - 1));
   }
@@ -66,10 +106,13 @@ class _PinScreenState extends State<PinScreen> {
         }
       }
     } else {
-      // Unlock flow
-      final valid = await _pinService.verifyPin(_pin);
-      if (valid) {
+      // Unlock flow — use rate-limited verification
+      final result = await _pinService.verifyPinWithRateLimit(_pin);
+      if (result.success) {
         if (mounted) Navigator.pop(context, true);
+      } else if (result.isLocked) {
+        _startLockoutCountdown(result.remainingSeconds);
+        HapticFeedback.heavyImpact();
       } else {
         setState(() {
           _pin = '';
@@ -88,11 +131,19 @@ class _PinScreenState extends State<PinScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock_outline, size: 48, color: Colors.cyanAccent),
+            Icon(
+              _isLockedOut ? Icons.lock : Icons.lock_outline,
+              size: 48,
+              color: _isLockedOut ? Colors.redAccent : Colors.cyanAccent,
+            ),
             const SizedBox(height: 24),
             Text(
               _message,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: _isLockedOut ? Colors.redAccent : Colors.white,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -143,24 +194,34 @@ class _PinScreenState extends State<PinScreen> {
           if (key.isEmpty) {
             return const SizedBox(width: 80, height: 64);
           }
+          final isDisabled = _isLockedOut;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Material(
-              color: Colors.grey.shade900,
+              color: isDisabled ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.grey.shade900,
               shape: const CircleBorder(),
               child: InkWell(
-                onTap: key == '⌫' ? _onBackspace : () => _onDigit(key),
+                onTap: isDisabled
+                    ? null
+                    : (key == '⌫' ? _onBackspace : () => _onDigit(key)),
                 customBorder: const CircleBorder(),
                 child: SizedBox(
                   width: 72,
                   height: 64,
                   child: Center(
                     child: key == '⌫'
-                        ? const Icon(Icons.backspace_outlined, size: 24)
+                        ? Icon(
+                            Icons.backspace_outlined,
+                            size: 24,
+                            color: isDisabled ? Colors.grey.shade700 : null,
+                          )
                         : Text(
                             key,
-                            style: const TextStyle(
-                                fontSize: 28, fontWeight: FontWeight.w300),
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w300,
+                              color: isDisabled ? Colors.grey.shade700 : null,
+                            ),
                           ),
                   ),
                 ),

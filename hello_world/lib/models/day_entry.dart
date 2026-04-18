@@ -8,7 +8,7 @@ class DayEntry {
   // Wizard fields (manual)
   final int mood;
   final int sleep; // subjective 1-10
-  final String xanax;
+  final String x; // '1' = 0, '2' = < 1, '3' = > 1
   final int workload;
   final int clouds;
   final int bubs;
@@ -32,7 +32,7 @@ class DayEntry {
     required this.timezoneOffset,
     required this.mood,
     required this.sleep,
-    required this.xanax,
+    required this.x,
     required this.workload,
     required this.clouds,
     required this.bubs,
@@ -52,7 +52,7 @@ class DayEntry {
     String? timezoneOffset,
     int? mood,
     int? sleep,
-    String? xanax,
+    String? x,
     int? workload,
     int? clouds,
     int? bubs,
@@ -71,7 +71,7 @@ class DayEntry {
       timezoneOffset: timezoneOffset ?? this.timezoneOffset,
       mood: mood ?? this.mood,
       sleep: sleep ?? this.sleep,
-      xanax: xanax ?? this.xanax,
+      x: x ?? this.x,
       workload: workload ?? this.workload,
       clouds: clouds ?? this.clouds,
       bubs: bubs ?? this.bubs,
@@ -93,7 +93,7 @@ class DayEntry {
         'timezoneOffset': timezoneOffset,
         'mood': mood,
         'sleep': sleep,
-        'xanax': xanax,
+        'x': x,
         'workload': workload,
         'clouds': clouds,
         'bubs': bubs,
@@ -107,24 +107,51 @@ class DayEntry {
         'updatedAt': updatedAt.toIso8601String(),
       };
 
-  factory DayEntry.fromJson(Map<String, dynamic> json) => DayEntry(
-        dateKey: json['dateKey'],
-        timezoneOffset: json['timezoneOffset'] ?? '',
-        mood: json['mood'] ?? 5,
-        sleep: json['sleep'] ?? 5,
-        xanax: json['xanax'] ?? '< 0.5',
-        workload: json['workload'] ?? 5,
-        clouds: json['clouds'] ?? 0,
-        bubs: json['bubs'] ?? 5,
-        energy: json['energy'] ?? 5,
-        steps: json['steps'],
-        avgHeartRate: json['avgHeartRate']?.toDouble(),
-        sleepMinutes: json['sleepMinutes'],
-        sleepStages: json['sleepStages'],
-        content: json['content'] ?? '',
-        createdAt: DateTime.parse(json['createdAt']),
-        updatedAt: DateTime.parse(json['updatedAt']),
-      );
+  /// Legacy xanax value → new x value mapping.
+  static String _mapLegacyXanax(String? legacy) {
+    switch (legacy) {
+      case '0.5 <= 1.0':
+        return '2';
+      case '1.0 <= 1.5':
+        return '3';
+      case '< 0.5':
+      case 'None':
+      case null:
+      default:
+        return '1';
+    }
+  }
+
+  factory DayEntry.fromJson(Map<String, dynamic> json) {
+    // Support both new 'x' key and legacy 'xanax' key
+    String xValue;
+    if (json.containsKey('x')) {
+      xValue = json['x'] ?? '1';
+    } else if (json.containsKey('xanax')) {
+      xValue = _mapLegacyXanax(json['xanax'] as String?);
+    } else {
+      xValue = '1';
+    }
+
+    return DayEntry(
+      dateKey: json['dateKey'],
+      timezoneOffset: json['timezoneOffset'] ?? '',
+      mood: json['mood'] ?? 5,
+      sleep: json['sleep'] ?? 5,
+      x: xValue,
+      workload: json['workload'] ?? 5,
+      clouds: json['clouds'] ?? 0,
+      bubs: json['bubs'] ?? 5,
+      energy: json['energy'] ?? 5,
+      steps: json['steps'],
+      avgHeartRate: json['avgHeartRate']?.toDouble(),
+      sleepMinutes: json['sleepMinutes'],
+      sleepStages: json['sleepStages'],
+      content: json['content'] ?? '',
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+    );
+  }
 
   // ─── Database serialization (SQLCipher) ───
 
@@ -133,7 +160,7 @@ class DayEntry {
         'timezone_offset': timezoneOffset,
         'mood': mood,
         'sleep': sleep,
-        'xanax': xanax,
+        'x': x,
         'workload': workload,
         'clouds': clouds,
         'bubs': bubs,
@@ -147,25 +174,37 @@ class DayEntry {
         'updated_at': updatedAt.toIso8601String(),
       };
 
-  factory DayEntry.fromDatabaseMap(Map<String, dynamic> map) => DayEntry(
-        id: map['id'] as int?,
-        dateKey: map['date_key'] as String,
-        timezoneOffset: (map['timezone_offset'] as String?) ?? '',
-        mood: (map['mood'] as int?) ?? 5,
-        sleep: (map['sleep'] as int?) ?? 5,
-        xanax: (map['xanax'] as String?) ?? '< 0.5',
-        workload: (map['workload'] as int?) ?? 5,
-        clouds: (map['clouds'] as int?) ?? 0,
-        bubs: (map['bubs'] as int?) ?? 5,
-        energy: (map['energy'] as int?) ?? 5,
-        steps: map['steps'] as int?,
-        avgHeartRate: (map['avg_heart_rate'] as num?)?.toDouble(),
-        sleepMinutes: map['sleep_minutes'] as int?,
-        sleepStages: map['sleep_stages'] as String?,
-        content: (map['content'] as String?) ?? '',
-        createdAt: DateTime.parse(map['created_at'] as String),
-        updatedAt: DateTime.parse(map['updated_at'] as String),
-      );
+  factory DayEntry.fromDatabaseMap(Map<String, dynamic> map) {
+    // Support both new 'x' column and legacy 'xanax' column for migration compat
+    String xValue;
+    if (map.containsKey('x') && map['x'] != null) {
+      xValue = map['x'] as String;
+    } else if (map.containsKey('xanax') && map['xanax'] != null) {
+      xValue = _mapLegacyXanax(map['xanax'] as String?);
+    } else {
+      xValue = '1';
+    }
+
+    return DayEntry(
+      id: map['id'] as int?,
+      dateKey: map['date_key'] as String,
+      timezoneOffset: (map['timezone_offset'] as String?) ?? '',
+      mood: (map['mood'] as int?) ?? 5,
+      sleep: (map['sleep'] as int?) ?? 5,
+      x: xValue,
+      workload: (map['workload'] as int?) ?? 5,
+      clouds: (map['clouds'] as int?) ?? 0,
+      bubs: (map['bubs'] as int?) ?? 5,
+      energy: (map['energy'] as int?) ?? 5,
+      steps: map['steps'] as int?,
+      avgHeartRate: (map['avg_heart_rate'] as num?)?.toDouble(),
+      sleepMinutes: map['sleep_minutes'] as int?,
+      sleepStages: map['sleep_stages'] as String?,
+      content: (map['content'] as String?) ?? '',
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+    );
+  }
 
   // ─── Utilities ───
 

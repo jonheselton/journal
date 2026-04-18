@@ -12,7 +12,7 @@ import '../models/tag.dart';
 /// Key is stored in Android Keystore via flutter_secure_storage.
 class DatabaseService {
   static const _dbName = 'daily_journal.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
   static const _encKeyStorageKey = 'db_encryption_key';
   static const _migrationDoneKey = 'db_migration_done';
 
@@ -62,6 +62,7 @@ class DatabaseService {
       password: key,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -73,7 +74,7 @@ class DatabaseService {
         timezone_offset TEXT NOT NULL DEFAULT '',
         mood INTEGER NOT NULL DEFAULT 5,
         sleep INTEGER NOT NULL DEFAULT 5,
-        xanax TEXT NOT NULL DEFAULT '< 0.5',
+        x TEXT NOT NULL DEFAULT '1',
         workload INTEGER NOT NULL DEFAULT 5,
         clouds INTEGER NOT NULL DEFAULT 0,
         bubs INTEGER NOT NULL DEFAULT 5,
@@ -136,6 +137,69 @@ class DatabaseService {
     for (final m in defaults) {
       await db.insert('metrics', m);
     }
+  }
+
+  /// Handle database upgrades.
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _migrateV1ToV2(db);
+    }
+  }
+
+  /// Migration v1 → v2: Rename xanax column to x with value mapping.
+  Future<void> _migrateV1ToV2(Database db) async {
+    // 1. Add the new 'x' column
+    await db.execute("ALTER TABLE day_entries ADD COLUMN x TEXT NOT NULL DEFAULT '1'");
+
+    // 2. Map old xanax values to new x values
+    await db.execute('''
+      UPDATE day_entries SET x = CASE
+        WHEN xanax = '< 0.5' THEN '1'
+        WHEN xanax = 'None' THEN '1'
+        WHEN xanax = '0.5 <= 1.0' THEN '2'
+        WHEN xanax = '1.0 <= 1.5' THEN '3'
+        ELSE '1'
+      END
+    ''');
+
+    // 3. Rebuild table without xanax column
+    await db.execute('''
+      CREATE TABLE day_entries_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date_key TEXT NOT NULL UNIQUE,
+        timezone_offset TEXT NOT NULL DEFAULT '',
+        mood INTEGER NOT NULL DEFAULT 5,
+        sleep INTEGER NOT NULL DEFAULT 5,
+        x TEXT NOT NULL DEFAULT '1',
+        workload INTEGER NOT NULL DEFAULT 5,
+        clouds INTEGER NOT NULL DEFAULT 0,
+        bubs INTEGER NOT NULL DEFAULT 5,
+        energy INTEGER NOT NULL DEFAULT 5,
+        steps INTEGER,
+        avg_heart_rate REAL,
+        sleep_minutes INTEGER,
+        sleep_stages TEXT,
+        content TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      INSERT INTO day_entries_new (
+        id, date_key, timezone_offset, mood, sleep, x,
+        workload, clouds, bubs, energy, steps, avg_heart_rate,
+        sleep_minutes, sleep_stages, content, created_at, updated_at
+      )
+      SELECT
+        id, date_key, timezone_offset, mood, sleep, x,
+        workload, clouds, bubs, energy, steps, avg_heart_rate,
+        sleep_minutes, sleep_stages, content, created_at, updated_at
+      FROM day_entries
+    ''');
+
+    await db.execute('DROP TABLE day_entries');
+    await db.execute('ALTER TABLE day_entries_new RENAME TO day_entries');
   }
 
   // ─────────────────────────────────────────
@@ -210,6 +274,42 @@ class DatabaseService {
     );
     if (results.isEmpty) return null;
     return results.first['id'] as int;
+  }
+
+  // ─────────────────────────────────────────
+  // Wizard Completion Tracking
+  // ─────────────────────────────────────────
+
+  /// Check if the wizard has been completed today (i.e. an entry exists
+  /// with non-default wizard values for today's dateKey).
+  Future<bool> hasCompletedWizardToday() async {
+    final todayKey = DayEntry.todayKey();
+    final entry = await loadDayEntry(todayKey);
+    if (entry == null) return false;
+    // Consider wizard completed if any value differs from defaults
+    return entry.mood != 5 ||
+        entry.sleep != 5 ||
+        entry.x != '1' ||
+        entry.workload != 5 ||
+        entry.clouds != 0 ||
+        entry.bubs != 5 ||
+        entry.energy != 5;
+  }
+
+  /// Get wizard field data for today's entry, or null if no wizard completed.
+  Future<Map<String, dynamic>?> getWizardDataForToday() async {
+    final todayKey = DayEntry.todayKey();
+    final entry = await loadDayEntry(todayKey);
+    if (entry == null) return null;
+    return {
+      'mood': entry.mood,
+      'sleep': entry.sleep,
+      'x': entry.x,
+      'workload': entry.workload,
+      'clouds': entry.clouds,
+      'bubs': entry.bubs,
+      'energy': entry.energy,
+    };
   }
 
   // ─────────────────────────────────────────
