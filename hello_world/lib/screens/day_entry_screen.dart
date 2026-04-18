@@ -32,8 +32,9 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
     super.initState();
     _currentEntry = widget.entry;
     _contentController = TextEditingController(text: _currentEntry.content);
-    // Start in preview/view mode if there's already content
-    _isPreviewMode = _currentEntry.content.isNotEmpty;
+    // Start in preview/view mode only for existing entries with content.
+    // New entries (no id) always open in edit mode for immediate writing.
+    _isPreviewMode = _currentEntry.id != null && _currentEntry.content.isNotEmpty;
     _loadMetricsAndTags();
   }
 

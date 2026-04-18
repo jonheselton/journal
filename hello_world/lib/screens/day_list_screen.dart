@@ -4,16 +4,15 @@ import '../services/database_service.dart';
 import '../services/health_service.dart';
 import '../services/keyword_extractor.dart';
 import 'day_entry_screen.dart';
-import 'statistics_screen.dart';
 
 class DayListScreen extends StatefulWidget {
   const DayListScreen({Key? key}) : super(key: key);
 
   @override
-  _DayListScreenState createState() => _DayListScreenState();
+  DayListScreenState createState() => DayListScreenState();
 }
 
-class _DayListScreenState extends State<DayListScreen> {
+class DayListScreenState extends State<DayListScreen> {
   List<DayEntry> _entries = [];
   final _db = DatabaseService();
   final _healthService = HealthService();
@@ -55,7 +54,8 @@ class _DayListScreenState extends State<DayListScreen> {
     });
   }
 
-  Future<void> _createOrEditToday() async {
+  /// Public method — called by HomeScreen's FAB.
+  Future<void> createOrEditToday() async {
     final todayKey = DayEntry.todayKey();
     final existing = await _db.loadDayEntry(todayKey);
 
@@ -88,7 +88,7 @@ class _DayListScreenState extends State<DayListScreen> {
       updatedAt: now,
     );
 
-    // Open the editor directly — user can tap Check-In button to add details
+    // Open the editor directly — user can tap Add Details to add metrics
     if (!mounted) return;
     final result = await Navigator.push<DayEntry>(
       context,
@@ -182,21 +182,8 @@ class _DayListScreenState extends State<DayListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Daily Journal'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bar_chart),
-            tooltip: 'Statistics',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StatisticsScreen(),
-                ),
-              );
-            },
-          ),
-        ],
+        title: const Text('Journal'),
+        automaticallyImplyLeading: false,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -205,7 +192,7 @@ class _DayListScreenState extends State<DayListScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                      'No entries yet.\nTap + to start today\'s check-in.',
+                      'No entries yet.\nTap + to start today\'s note.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16),
                     ),
@@ -317,10 +304,6 @@ class _DayListScreenState extends State<DayListScreen> {
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createOrEditToday,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
