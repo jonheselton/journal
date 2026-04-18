@@ -135,8 +135,6 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
         sleep: wizardResult['sleep'] ?? _currentEntry.sleep,
         x: wizardResult['x'] ?? _currentEntry.x,
         workload: wizardResult['workload'] ?? _currentEntry.workload,
-        clouds: wizardResult['clouds'] ?? _currentEntry.clouds,
-        bubs: wizardResult['bubs'] ?? _currentEntry.bubs,
         energy: wizardResult['energy'] ?? _currentEntry.energy,
         updatedAt: DateTime.now(),
       );
@@ -202,7 +200,7 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.psychology),
-            tooltip: 'Daily Check-In',
+            tooltip: 'Add Details',
             onPressed: _launchCheckIn,
           ),
           IconButton(
@@ -362,8 +360,6 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
                 _wizardChip('Sleep', entry.sleep),
                 _wizardTag('X', entry.x),
                 _wizardChip('Work', entry.workload),
-                _wizardChip('Clouds', entry.clouds),
-                _wizardChip('Bubs', entry.bubs),
                 _wizardChip('Energy', entry.energy),
               ],
             ),

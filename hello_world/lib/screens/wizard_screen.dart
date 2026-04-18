@@ -10,15 +10,13 @@ class WizardScreen extends StatefulWidget {
 class _WizardScreenState extends State<WizardScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  static const int _totalPages = 7;
+  static const int _totalPages = 5;
 
   // Wizard Data
   double _mood = 5;
   double _sleep = 5;
   String _x = '1';
   double _workload = 5;
-  double _clouds = 0;
-  double _bubs = 5;
   double _energy = 5;
 
   void _nextPage() {
@@ -38,8 +36,6 @@ class _WizardScreenState extends State<WizardScreen> {
       'sleep': _sleep.toInt(),
       'x': _x,
       'workload': _workload.toInt(),
-      'clouds': _clouds.toInt(),
-      'bubs': _bubs.toInt(),
       'energy': _energy.toInt(),
     };
     Navigator.pop(context, result);
@@ -195,18 +191,6 @@ class _WizardScreenState extends State<WizardScreen> {
             question: 'How much do you have going on at work?',
             value: _workload,
             onChanged: (val) => setState(() => _workload = val),
-          ),
-          _buildDialPage(
-            question: 'How many clouds since the last entry?',
-            value: _clouds,
-            min: 0,
-            max: 20,
-            onChanged: (val) => setState(() => _clouds = val),
-          ),
-          _buildDialPage(
-            question: 'Bubs?',
-            value: _bubs,
-            onChanged: (val) => setState(() => _bubs = val),
           ),
           _buildDialPage(
             question: 'Energy level?',

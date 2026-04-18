@@ -291,8 +291,6 @@ class DatabaseService {
         entry.sleep != 5 ||
         entry.x != '1' ||
         entry.workload != 5 ||
-        entry.clouds != 0 ||
-        entry.bubs != 5 ||
         entry.energy != 5;
   }
 
@@ -306,8 +304,6 @@ class DatabaseService {
       'sleep': entry.sleep,
       'x': entry.x,
       'workload': entry.workload,
-      'clouds': entry.clouds,
-      'bubs': entry.bubs,
       'energy': entry.energy,
     };
   }
@@ -443,8 +439,6 @@ class DatabaseService {
         AVG(mood) as avg_mood,
         AVG(sleep) as avg_sleep,
         AVG(workload) as avg_workload,
-        AVG(clouds) as avg_clouds,
-        AVG(bubs) as avg_bubs,
         AVG(energy) as avg_energy
       FROM day_entries
     ''');
@@ -454,8 +448,6 @@ class DatabaseService {
       'Mood': (row['avg_mood'] as num?)?.toDouble() ?? 0,
       'Sleep': (row['avg_sleep'] as num?)?.toDouble() ?? 0,
       'Workload': (row['avg_workload'] as num?)?.toDouble() ?? 0,
-      'Clouds': (row['avg_clouds'] as num?)?.toDouble() ?? 0,
-      'Bubs': (row['avg_bubs'] as num?)?.toDouble() ?? 0,
       'Energy': (row['avg_energy'] as num?)?.toDouble() ?? 0,
     };
   }
