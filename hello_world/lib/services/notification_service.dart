@@ -67,4 +67,10 @@ class NotificationService {
   Future<void> cancelReminder() async {
     await _notifications.cancel(id: 0);
   }
+
+  /// Cancel all scheduled notifications.
+  Future<void> cancelAll() async {
+    await _notifications.cancelAll();
+    debugPrint('NotificationService: All notifications cancelled');
+  }
 }

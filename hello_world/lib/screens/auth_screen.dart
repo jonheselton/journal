@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/health_service.dart';
 import '../services/pin_service.dart';
-import 'day_list_screen.dart';
+import 'home_screen.dart';
 import 'pin_screen.dart';
 
 /// Root screen that handles authentication (biometric + PIN fallback)
@@ -188,7 +188,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_isAuthenticated) {
-      return const DayListScreen();
+      return const HomeScreen();
     }
     return Scaffold(
       body: Center(
