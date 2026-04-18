@@ -2,10 +2,7 @@
 
 ## Remaining Manual Steps
 
-- [ ] **Generate keystore:** `keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`
-- [ ] **Create `android/key.properties`** from `key.properties.example` with your keystore credentials
 - [ ] **Host privacy policy** at a public URL (GitHub Pages, static site, etc.)
-- [ ] **Update privacy policy email** in `store/privacy_policy.html` (replace `[YOUR_EMAIL]`)
 - [ ] **Register Google Play Developer account** ($25 fee) at [play.google.com/console](https://play.google.com/console)
 - [ ] **Build release AAB:** `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`
 - [ ] **Submit to Play Console** — follow `store/developer_account_guide.md`
@@ -27,3 +24,13 @@
 - [x] `allowBackup=false`
 - [x] Dead code cleanup
 - [x] Store listing text + images
+- [x] Generate keystore (`upload-keystore.jks` exists)
+- [x] Create `android/key.properties` from example
+- [x] Update privacy policy email (google@gencan.io)
+- [x] SQLCipher encrypted database (AES-256 + Android Keystore)
+- [x] Data models: DayEntry, Metrics, DayMetrics, Tags
+- [x] Database migration from flutter_secure_storage
+- [x] Element metrics (Air, Earth, Wind, Fire) with sliders
+- [x] Local NLP keyword extraction (RAKE algorithm)
+- [x] Statistics screen with averages + tag cloud
+- [x] Privacy policy updated for SQLCipher + NLP disclosure

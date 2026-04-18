@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DayEntry {
+  final int? id; // Database row id (null for new entries)
   final String dateKey; // "2026-03-23" (local date)
   final String timezoneOffset; // e.g. "-05:00"
 
@@ -26,6 +27,7 @@ class DayEntry {
   final DateTime updatedAt;
 
   DayEntry({
+    this.id,
     required this.dateKey,
     required this.timezoneOffset,
     required this.mood,
@@ -45,6 +47,7 @@ class DayEntry {
   });
 
   DayEntry copyWith({
+    int? id,
     String? dateKey,
     String? timezoneOffset,
     int? mood,
@@ -63,6 +66,7 @@ class DayEntry {
     DateTime? updatedAt,
   }) {
     return DayEntry(
+      id: id ?? this.id,
       dateKey: dateKey ?? this.dateKey,
       timezoneOffset: timezoneOffset ?? this.timezoneOffset,
       mood: mood ?? this.mood,
@@ -81,6 +85,8 @@ class DayEntry {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // ─── JSON serialization (legacy / flutter_secure_storage compat) ───
 
   Map<String, dynamic> toJson() => {
         'dateKey': dateKey,
@@ -119,6 +125,49 @@ class DayEntry {
         createdAt: DateTime.parse(json['createdAt']),
         updatedAt: DateTime.parse(json['updatedAt']),
       );
+
+  // ─── Database serialization (SQLCipher) ───
+
+  Map<String, dynamic> toDatabaseMap() => {
+        'date_key': dateKey,
+        'timezone_offset': timezoneOffset,
+        'mood': mood,
+        'sleep': sleep,
+        'xanax': xanax,
+        'workload': workload,
+        'clouds': clouds,
+        'bubs': bubs,
+        'energy': energy,
+        'steps': steps,
+        'avg_heart_rate': avgHeartRate,
+        'sleep_minutes': sleepMinutes,
+        'sleep_stages': sleepStages,
+        'content': content,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+      };
+
+  factory DayEntry.fromDatabaseMap(Map<String, dynamic> map) => DayEntry(
+        id: map['id'] as int?,
+        dateKey: map['date_key'] as String,
+        timezoneOffset: (map['timezone_offset'] as String?) ?? '',
+        mood: (map['mood'] as int?) ?? 5,
+        sleep: (map['sleep'] as int?) ?? 5,
+        xanax: (map['xanax'] as String?) ?? '< 0.5',
+        workload: (map['workload'] as int?) ?? 5,
+        clouds: (map['clouds'] as int?) ?? 0,
+        bubs: (map['bubs'] as int?) ?? 5,
+        energy: (map['energy'] as int?) ?? 5,
+        steps: map['steps'] as int?,
+        avgHeartRate: (map['avg_heart_rate'] as num?)?.toDouble(),
+        sleepMinutes: map['sleep_minutes'] as int?,
+        sleepStages: map['sleep_stages'] as String?,
+        content: (map['content'] as String?) ?? '',
+        createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: DateTime.parse(map['updated_at'] as String),
+      );
+
+  // ─── Utilities ───
 
   /// Returns the local date for "today" as a YYYY-MM-DD key.
   static String todayKey() {
