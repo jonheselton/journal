@@ -5,7 +5,6 @@ import '../services/health_service.dart';
 import '../services/keyword_extractor.dart';
 import 'day_entry_screen.dart';
 import 'statistics_screen.dart';
-import 'wizard_screen.dart';
 
 class DayListScreen extends StatefulWidget {
   const DayListScreen({Key? key}) : super(key: key);
@@ -66,25 +65,6 @@ class _DayListScreenState extends State<DayListScreen> {
       return;
     }
 
-    // Check if wizard has been completed today (from a previous entry)
-    Map<String, dynamic>? wizardData;
-    final wizardDone = await _db.hasCompletedWizardToday();
-
-    if (wizardDone) {
-      // Reuse today's wizard data without re-showing the wizard
-      wizardData = await _db.getWizardDataForToday();
-    }
-
-    if (wizardData == null) {
-      // Run the wizard for a new entry
-      final wizardResult = await Navigator.push<Map<String, dynamic>>(
-        context,
-        MaterialPageRoute(builder: (context) => const WizardScreen()),
-      );
-      if (wizardResult == null || !mounted) return;
-      wizardData = wizardResult;
-    }
-
     // Fetch health data
     final healthMetrics = await _healthService.fetchDayMetrics(DateTime.now());
 
@@ -92,13 +72,13 @@ class _DayListScreenState extends State<DayListScreen> {
     final entry = DayEntry(
       dateKey: todayKey,
       timezoneOffset: DayEntry.currentTimezoneOffset(),
-      mood: wizardData['mood'] ?? 5,
-      sleep: wizardData['sleep'] ?? 5,
-      x: wizardData['x'] ?? '1',
-      workload: wizardData['workload'] ?? 5,
-      clouds: wizardData['clouds'] ?? 0,
-      bubs: wizardData['bubs'] ?? 5,
-      energy: wizardData['energy'] ?? 5,
+      mood: 5,
+      sleep: 5,
+      x: '1',
+      workload: 5,
+      clouds: 0,
+      bubs: 5,
+      energy: 5,
       steps: healthMetrics.steps,
       avgHeartRate: healthMetrics.avgHeartRate,
       sleepMinutes: healthMetrics.sleepMinutes,
@@ -108,7 +88,7 @@ class _DayListScreenState extends State<DayListScreen> {
       updatedAt: now,
     );
 
-    // Open the editor
+    // Open the editor directly — user can tap Check-In button to add details
     if (!mounted) return;
     final result = await Navigator.push<DayEntry>(
       context,
