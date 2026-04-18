@@ -13,7 +13,7 @@
 </head>
 <body>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: March 23, 2026</p>
+    <p class="updated">Last updated: April 17, 2026</p>
 
     <p><strong>Daily Journal</strong> ("the App") is a personal health journal application. This policy describes what data the App collects, how it is stored, and your rights regarding that data.</p>
 
@@ -27,7 +27,8 @@
 
     <h2>2. How Data Is Stored</h2>
     <ul>
-        <li>All data is stored <strong>exclusively on your device</strong> using encrypted storage (Android Keystore-backed encryption via flutter_secure_storage).</li>
+        <li>All data is stored <strong>exclusively on your device</strong> in a SQLCipher-encrypted database (AES-256). The encryption key is stored in the Android Keystore hardware-backed secure enclave.</li>
+        <li>The App performs <strong>local keyword extraction</strong> on your journal entries using on-device natural language processing. This runs entirely offline and no text is sent to any server.</li>
         <li>The App does <strong>not</strong> transmit any data over the internet.</li>
         <li>The App does <strong>not</strong> use any analytics, tracking, or advertising SDKs.</li>
         <li>The App does <strong>not</strong> have a backend server or cloud storage.</li>

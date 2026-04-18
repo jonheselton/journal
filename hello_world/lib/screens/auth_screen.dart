@@ -21,6 +21,15 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   bool _isAuthenticating = false;
   String _authMessage = 'Authenticating...';
 
+  /// Tracks when the app was last paused. Used to distinguish genuine
+  /// backgrounding (user pressed Home, switched apps) from brief system
+  /// dialog interruptions (biometric prompt, Health Connect permissions).
+  DateTime? _pausedAt;
+
+  /// Minimum background duration before re-locking. System dialogs cause
+  /// rapid pause→resume cycles well under this threshold.
+  static const _relockThreshold = Duration(seconds: 3);
+
   @override
   void initState() {
     super.initState();
@@ -34,10 +43,20 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Re-lock when app is resumed from background.
+  /// Re-lock when app is resumed from a genuine background session.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _isAuthenticated) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed && _isAuthenticated) {
+      // Only re-lock if the app was genuinely backgrounded (>3 seconds).
+      // System dialogs (biometric prompt, Health Connect) cause rapid
+      // pause→resume cycles that should NOT trigger re-authentication.
+      final paused = _pausedAt;
+      if (paused == null) return;
+      final elapsed = DateTime.now().difference(paused);
+      if (elapsed < _relockThreshold) return;
+
       setState(() {
         _isAuthenticated = false;
         _authMessage = 'Please authenticate again.';

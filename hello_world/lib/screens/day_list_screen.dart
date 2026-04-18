@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/day_entry.dart';
-import '../services/storage_service.dart';
+import '../services/database_service.dart';
 import '../services/health_service.dart';
+import '../services/keyword_extractor.dart';
 import 'day_entry_screen.dart';
+import 'statistics_screen.dart';
 import 'wizard_screen.dart';
 
 class DayListScreen extends StatefulWidget {
@@ -14,21 +16,40 @@ class DayListScreen extends StatefulWidget {
 
 class _DayListScreenState extends State<DayListScreen> {
   List<DayEntry> _entries = [];
-  final _storageService = StorageService();
+  final _db = DatabaseService();
   final _healthService = HealthService();
   bool _loading = true;
+  bool _migrated = false;
 
   @override
   void initState() {
     super.initState();
-    _loadEntries();
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    // Run migration from old secure storage on first launch
+    if (!_migrated) {
+      try {
+        final count = await _db.migrateFromSecureStorage();
+        if (count > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Migrated $count entries to secure database')),
+          );
+        }
+      } catch (e) {
+        debugPrint('Migration error: $e');
+      }
+      _migrated = true;
+    }
+    await _loadEntries();
   }
 
   Future<void> _loadEntries() async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    final entries = await _storageService.loadAllEntries();
-    // Clean up any legacy data from the old notes format
-    await _storageService.clearLegacyData();
+    final entries = await _db.loadAllEntries();
+    if (!mounted) return;
     setState(() {
       _entries = entries;
       _loading = false;
@@ -37,7 +58,7 @@ class _DayListScreenState extends State<DayListScreen> {
 
   Future<void> _createOrEditToday() async {
     final todayKey = DayEntry.todayKey();
-    final existing = await _storageService.loadDayEntry(todayKey);
+    final existing = await _db.loadDayEntry(todayKey);
 
     if (existing != null) {
       // Entry already exists for today — open it for editing
@@ -82,7 +103,22 @@ class _DayListScreenState extends State<DayListScreen> {
     );
 
     if (result != null) {
-      await _storageService.saveDayEntry(result);
+      final entryId = await _db.saveDayEntry(result);
+
+      // Save default element metrics (Air=5, Earth=5, Wind=5, Fire=5)
+      final metrics = await _db.getAllMetrics();
+      final metricValues = <int, int>{};
+      for (final m in metrics) {
+        metricValues[m.id] = 5; // Default to 5
+      }
+      await _db.saveDayMetrics(entryId, metricValues);
+
+      // Extract and save NLP tags
+      if (result.content.isNotEmpty) {
+        final keywords = KeywordExtractor.extract(result.content);
+        await _db.saveDayEntryTags(entryId, keywords);
+      }
+
       _loadEntries();
     }
   }
@@ -109,13 +145,20 @@ class _DayListScreenState extends State<DayListScreen> {
     );
 
     if (result != null) {
-      await _storageService.saveDayEntry(result);
+      final entryId = await _db.saveDayEntry(result);
+
+      // Extract and save NLP tags
+      if (result.content.isNotEmpty) {
+        final keywords = KeywordExtractor.extract(result.content);
+        await _db.saveDayEntryTags(entryId, keywords);
+      }
+
       _loadEntries();
     }
   }
 
   void _deleteEntry(String dateKey) async {
-    await _storageService.deleteDayEntry(dateKey);
+    await _db.deleteDayEntry(dateKey);
     _loadEntries();
   }
 
@@ -147,6 +190,20 @@ class _DayListScreenState extends State<DayListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daily Journal'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Statistics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StatisticsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

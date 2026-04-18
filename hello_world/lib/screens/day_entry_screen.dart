@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/day_entry.dart';
+import '../models/metric.dart';
+import '../models/tag.dart';
+import '../services/database_service.dart';
 
 class DayEntryScreen extends StatefulWidget {
   final DayEntry entry;
@@ -14,6 +17,13 @@ class DayEntryScreen extends StatefulWidget {
 class _DayEntryScreenState extends State<DayEntryScreen> {
   late TextEditingController _contentController;
   bool _isPreviewMode = false;
+  final _db = DatabaseService();
+
+  // Element metrics (Air, Earth, Wind, Fire)
+  List<Metric> _metrics = [];
+  Map<int, int> _metricValues = {};
+  List<Tag> _tags = [];
+  bool _metricsLoaded = false;
 
   @override
   void initState() {
@@ -21,6 +31,36 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
     _contentController = TextEditingController(text: widget.entry.content);
     // Start in preview/view mode if there's already content
     _isPreviewMode = widget.entry.content.isNotEmpty;
+    _loadMetricsAndTags();
+  }
+
+  Future<void> _loadMetricsAndTags() async {
+    try {
+      final metrics = await _db.getAllMetrics();
+      Map<int, int> values = {};
+      List<Tag> tags = [];
+
+      // If editing an existing entry, load its metric values and tags
+      if (widget.entry.id != null) {
+        values = await _db.loadDayMetrics(widget.entry.id!);
+        tags = await _db.loadDayEntryTags(widget.entry.id!);
+      }
+
+      // Default unset metrics to 5
+      for (final m in metrics) {
+        values.putIfAbsent(m.id, () => 5);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _metrics = metrics;
+        _metricValues = values;
+        _tags = tags;
+        _metricsLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Error loading metrics: $e');
+    }
   }
 
   @override
@@ -35,7 +75,21 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
       content: _contentController.text,
       updatedAt: DateTime.now(),
     );
+
+    // Save element metrics to DB if we have an entry id
+    _saveMetrics(updatedEntry);
+
     Navigator.pop(context, updatedEntry);
+  }
+
+  Future<void> _saveMetrics(DayEntry entry) async {
+    if (entry.id != null && _metricValues.isNotEmpty) {
+      try {
+        await _db.saveDayMetrics(entry.id!, _metricValues);
+      } catch (e) {
+        debugPrint('Error saving metrics: $e');
+      }
+    }
   }
 
   String _formatDate(String dateKey) {
@@ -56,6 +110,36 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return '${h}h ${m}m';
+  }
+
+  IconData _metricIcon(Metric metric) {
+    switch (metric.key) {
+      case 'air':
+        return Icons.air;
+      case 'earth':
+        return Icons.terrain;
+      case 'wind':
+        return Icons.wind_power;
+      case 'fire':
+        return Icons.local_fire_department;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  Color _metricColor(Metric metric) {
+    switch (metric.key) {
+      case 'air':
+        return Colors.lightBlueAccent;
+      case 'earth':
+        return Colors.brown.shade300;
+      case 'wind':
+        return Colors.tealAccent;
+      case 'fire':
+        return Colors.deepOrangeAccent;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -89,6 +173,12 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
             const SizedBox(height: 12),
             // --- Wizard Metrics ---
             _buildWizardCard(entry),
+            const SizedBox(height: 12),
+            // --- Element Metrics (Air, Earth, Wind, Fire) ---
+            if (_metricsLoaded) _buildElementCard(),
+            const SizedBox(height: 12),
+            // --- Tags ---
+            if (_tags.isNotEmpty) _buildTagsCard(),
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
@@ -220,6 +310,132 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
                 _wizardChip('Bubs', entry.bubs),
                 _wizardChip('Energy', entry.energy),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildElementCard() {
+    return Card(
+      color: Colors.grey.shade900,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 18, color: Colors.amberAccent),
+                const SizedBox(width: 8),
+                const Text(
+                  'Elements',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._metrics.map((metric) {
+              final value = _metricValues[metric.id] ?? 5;
+              final color = _metricColor(metric);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(_metricIcon(metric), size: 20, color: color),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 48,
+                      child: Text(
+                        metric.name,
+                        style: TextStyle(fontSize: 13, color: color),
+                      ),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: value.toDouble(),
+                        min: 1,
+                        max: 10,
+                        divisions: 9,
+                        activeColor: color,
+                        label: value.toString(),
+                        onChanged: (val) {
+                          setState(() {
+                            _metricValues[metric.id] = val.toInt();
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '$value',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagsCard() {
+    return Card(
+      color: Colors.grey.shade900,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.label, size: 18, color: Colors.purpleAccent),
+                const SizedBox(width: 8),
+                const Text(
+                  'Auto-Tags',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _tags
+                  .map((tag) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purpleAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.purpleAccent.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          tag.text,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.purpleAccent,
+                          ),
+                        ),
+                      ))
+                  .toList(),
             ),
           ],
         ),
