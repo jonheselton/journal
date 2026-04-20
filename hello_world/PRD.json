@@ -122,14 +122,14 @@
       "tasks": [
         {
           "id": "E7-T1",
-          "status": "not_started",
+          "status": "done",
           "title": "Schema migration v2 → v3: drop clouds and bubs columns",
           "files": ["lib/services/database_service.dart"],
           "done_when": "Bump _dbVersion to 3. _onUpgrade rebuilds day_entries without clouds/bubs columns. _onCreate creates table without them. Existing data migrates cleanly (columns dropped, no data loss on other fields). flutter analyze clean."
         },
         {
           "id": "E7-T2",
-          "status": "not_started",
+          "status": "done",
           "title": "Remove clouds/bubs from DayEntry model",
           "depends_on": ["E7-T1"],
           "files": ["lib/models/day_entry.dart"],
@@ -137,7 +137,7 @@
         },
         {
           "id": "E7-T3",
-          "status": "not_started",
+          "status": "done",
           "title": "Verify no remaining references to clouds/bubs in codebase",
           "depends_on": ["E7-T2"],
           "files": [],
@@ -153,14 +153,14 @@
       "tasks": [
         {
           "id": "E8-T1",
-          "status": "not_started",
+          "status": "done",
           "title": "Fix Health Connect permission spam in logs",
           "files": ["lib/services/health_service.dart"],
           "done_when": "Permission check runs once per app session, not repeatedly. Device logs show 'permissions were granted' at most once per launch."
         },
         {
           "id": "E8-T2",
-          "status": "not_started",
+          "status": "done",
           "title": "Add empty-state prompt to entry editor",
           "files": ["lib/screens/day_entry_screen.dart"],
           "done_when": "When a new entry is opened with default wizard values, a subtle banner or prompt says 'Tap 🧠 to add your daily check-in details'. Banner disappears after wizard is completed."

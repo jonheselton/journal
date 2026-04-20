@@ -25,6 +25,7 @@ class HealthService {
 
   bool _isConfigured = false;
   bool _hasPermissions = false;
+  bool _permissionChecked = false;
 
   /// Health data types we need to read.
   static const List<HealthDataType> _types = [
@@ -83,8 +84,9 @@ class HealthService {
     try {
       await configure();
 
-      if (!_hasPermissions) {
+      if (!_hasPermissions && !_permissionChecked) {
         await requestPermissions();
+        _permissionChecked = true;
       }
 
       if (!_hasPermissions) {

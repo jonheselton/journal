@@ -155,6 +155,15 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
     }
   }
 
+  /// Returns true if all wizard fields are at their default values.
+  bool _isWizardDefaults(DayEntry entry) {
+    return entry.mood == 5 &&
+        entry.sleep == 5 &&
+        entry.x == '1' &&
+        entry.workload == 5 &&
+        entry.energy == 5;
+  }
+
   String _formatSleep(int? minutes) {
     if (minutes == null) return '--';
     final h = minutes ~/ 60;
@@ -226,6 +235,39 @@ class _DayEntryScreenState extends State<DayEntryScreen> {
             // --- Health Connect Metrics ---
             _buildHealthCard(entry),
             const SizedBox(height: 12),
+            // --- Check-In Prompt (shows when wizard values are defaults) ---
+            if (_isWizardDefaults(entry))
+              GestureDetector(
+                onTap: _launchCheckIn,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.orangeAccent.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.psychology, size: 20, color: Colors.orangeAccent),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Tap 🧠 to add your daily check-in details',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orangeAccent,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, size: 14, color: Colors.orangeAccent.withValues(alpha: 0.5)),
+                    ],
+                  ),
+                ),
+              ),
+            if (_isWizardDefaults(entry)) const SizedBox(height: 12),
             // --- Wizard Metrics ---
             _buildWizardCard(entry),
             const SizedBox(height: 12),

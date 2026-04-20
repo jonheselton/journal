@@ -10,8 +10,6 @@ class DayEntry {
   final int sleep; // subjective 1-10
   final String x; // '1' = 0, '2' = < 1, '3' = > 1
   final int workload;
-  final int clouds;
-  final int bubs;
   final int energy;
 
   // Health Connect fields (auto-fetched)
@@ -34,8 +32,6 @@ class DayEntry {
     required this.sleep,
     required this.x,
     required this.workload,
-    required this.clouds,
-    required this.bubs,
     required this.energy,
     this.steps,
     this.avgHeartRate,
@@ -54,8 +50,6 @@ class DayEntry {
     int? sleep,
     String? x,
     int? workload,
-    int? clouds,
-    int? bubs,
     int? energy,
     int? steps,
     double? avgHeartRate,
@@ -73,8 +67,6 @@ class DayEntry {
       sleep: sleep ?? this.sleep,
       x: x ?? this.x,
       workload: workload ?? this.workload,
-      clouds: clouds ?? this.clouds,
-      bubs: bubs ?? this.bubs,
       energy: energy ?? this.energy,
       steps: steps ?? this.steps,
       avgHeartRate: avgHeartRate ?? this.avgHeartRate,
@@ -95,8 +87,6 @@ class DayEntry {
         'sleep': sleep,
         'x': x,
         'workload': workload,
-        'clouds': clouds,
-        'bubs': bubs,
         'energy': energy,
         'steps': steps,
         'avgHeartRate': avgHeartRate,
@@ -140,8 +130,6 @@ class DayEntry {
       sleep: json['sleep'] ?? 5,
       x: xValue,
       workload: json['workload'] ?? 5,
-      clouds: json['clouds'] ?? 0,
-      bubs: json['bubs'] ?? 5,
       energy: json['energy'] ?? 5,
       steps: json['steps'],
       avgHeartRate: json['avgHeartRate']?.toDouble(),
@@ -162,8 +150,6 @@ class DayEntry {
         'sleep': sleep,
         'x': x,
         'workload': workload,
-        'clouds': clouds,
-        'bubs': bubs,
         'energy': energy,
         'steps': steps,
         'avg_heart_rate': avgHeartRate,
@@ -193,8 +179,6 @@ class DayEntry {
       sleep: (map['sleep'] as int?) ?? 5,
       x: xValue,
       workload: (map['workload'] as int?) ?? 5,
-      clouds: (map['clouds'] as int?) ?? 0,
-      bubs: (map['bubs'] as int?) ?? 5,
       energy: (map['energy'] as int?) ?? 5,
       steps: map['steps'] as int?,
       avgHeartRate: (map['avg_heart_rate'] as num?)?.toDouble(),
