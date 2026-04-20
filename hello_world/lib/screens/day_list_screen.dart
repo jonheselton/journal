@@ -76,8 +76,6 @@ class DayListScreenState extends State<DayListScreen> {
       sleep: 5,
       x: '1',
       workload: 5,
-      clouds: 0,
-      bubs: 5,
       energy: 5,
       steps: healthMetrics.steps,
       avgHeartRate: healthMetrics.avgHeartRate,

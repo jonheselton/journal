@@ -12,7 +12,7 @@ import '../models/tag.dart';
 /// Key is stored in Android Keystore via flutter_secure_storage.
 class DatabaseService {
   static const _dbName = 'daily_journal.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
   static const _encKeyStorageKey = 'db_encryption_key';
   static const _migrationDoneKey = 'db_migration_done';
 
@@ -76,8 +76,6 @@ class DatabaseService {
         sleep INTEGER NOT NULL DEFAULT 5,
         x TEXT NOT NULL DEFAULT '1',
         workload INTEGER NOT NULL DEFAULT 5,
-        clouds INTEGER NOT NULL DEFAULT 0,
-        bubs INTEGER NOT NULL DEFAULT 5,
         energy INTEGER NOT NULL DEFAULT 5,
         steps INTEGER,
         avg_heart_rate REAL,
@@ -144,6 +142,9 @@ class DatabaseService {
     if (oldVersion < 2) {
       await _migrateV1ToV2(db);
     }
+    if (oldVersion < 3) {
+      await _migrateV2ToV3(db);
+    }
   }
 
   /// Migration v1 → v2: Rename xanax column to x with value mapping.
@@ -162,7 +163,8 @@ class DatabaseService {
       END
     ''');
 
-    // 3. Rebuild table without xanax column
+    // 3. Rebuild table without xanax column (also drops clouds/bubs
+    // since v3 migration will run next)
     await db.execute('''
       CREATE TABLE day_entries_new (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,8 +174,6 @@ class DatabaseService {
         sleep INTEGER NOT NULL DEFAULT 5,
         x TEXT NOT NULL DEFAULT '1',
         workload INTEGER NOT NULL DEFAULT 5,
-        clouds INTEGER NOT NULL DEFAULT 0,
-        bubs INTEGER NOT NULL DEFAULT 5,
         energy INTEGER NOT NULL DEFAULT 5,
         steps INTEGER,
         avg_heart_rate REAL,
@@ -188,12 +188,60 @@ class DatabaseService {
     await db.execute('''
       INSERT INTO day_entries_new (
         id, date_key, timezone_offset, mood, sleep, x,
-        workload, clouds, bubs, energy, steps, avg_heart_rate,
+        workload, energy, steps, avg_heart_rate,
         sleep_minutes, sleep_stages, content, created_at, updated_at
       )
       SELECT
         id, date_key, timezone_offset, mood, sleep, x,
-        workload, clouds, bubs, energy, steps, avg_heart_rate,
+        workload, energy, steps, avg_heart_rate,
+        sleep_minutes, sleep_stages, content, created_at, updated_at
+      FROM day_entries
+    ''');
+
+    await db.execute('DROP TABLE day_entries');
+    await db.execute('ALTER TABLE day_entries_new RENAME TO day_entries');
+  }
+
+  /// Migration v2 → v3: Drop clouds and bubs columns.
+  Future<void> _migrateV2ToV3(Database db) async {
+    // Check if columns still exist (they won't if v1→v2 already dropped them)
+    final tableInfo = await db.rawQuery("PRAGMA table_info('day_entries')");
+    final columnNames = tableInfo.map((c) => c['name'] as String).toSet();
+    if (!columnNames.contains('clouds') && !columnNames.contains('bubs')) {
+      // Already clean — v1→v2 migration handled it
+      return;
+    }
+
+    // Rebuild table without clouds/bubs
+    await db.execute('''
+      CREATE TABLE day_entries_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date_key TEXT NOT NULL UNIQUE,
+        timezone_offset TEXT NOT NULL DEFAULT '',
+        mood INTEGER NOT NULL DEFAULT 5,
+        sleep INTEGER NOT NULL DEFAULT 5,
+        x TEXT NOT NULL DEFAULT '1',
+        workload INTEGER NOT NULL DEFAULT 5,
+        energy INTEGER NOT NULL DEFAULT 5,
+        steps INTEGER,
+        avg_heart_rate REAL,
+        sleep_minutes INTEGER,
+        sleep_stages TEXT,
+        content TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      INSERT INTO day_entries_new (
+        id, date_key, timezone_offset, mood, sleep, x,
+        workload, energy, steps, avg_heart_rate,
+        sleep_minutes, sleep_stages, content, created_at, updated_at
+      )
+      SELECT
+        id, date_key, timezone_offset, mood, sleep, x,
+        workload, energy, steps, avg_heart_rate,
         sleep_minutes, sleep_stages, content, created_at, updated_at
       FROM day_entries
     ''');
