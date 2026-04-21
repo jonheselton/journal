@@ -2,9 +2,9 @@
 
 ## Remaining Manual Steps
 
-- [ ] **Host privacy policy** at a public URL (GitHub Pages, static site, etc.)
+- [x] **Host privacy policy** at a public URL (GitHub Pages, static site, etc.)
 - [ ] **Register Google Play Developer account** ($25 fee) at [play.google.com/console](https://play.google.com/console)
-- [ ] **Build release AAB:** `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`
+- [x] **Build release AAB:** `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`
 - [ ] **Submit to Play Console** — follow `store/developer_account_guide.md`
 - [ ] **Complete Health Connect declaration** — follow `store/health_connect_declaration.md`
 - [ ] Test on a real device with Health Connect installed
