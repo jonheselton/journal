@@ -1,6 +1,6 @@
 # Daily Journal TODO
 
-> **Current Release:** v1.1.0 "Fourvel" (2026-05-01)
+> **Current Release:** v1.1.1 (2026-05-01)
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 🔐 Security Housekeeping
 
-- [ ] **Change keystore password** — Current: `DJournal2026Secure` → store in a password manager
+- [x] **Change keystore password** — Rotated; stored in password manager
 
 ## 🧪 Manual Verification (Requires Device)
 

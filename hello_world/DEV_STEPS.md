@@ -54,8 +54,7 @@ Follow these steps in order. Check off each one as you complete it.
 
 > ⚠️ **Back up your keystore!**
 > File: `android_scratch/upload-keystore.jks`
-> Password: `DJournal2026Secure`
-> **Change this password** and store it securely (password manager).
+> Password: Stored in macOS Keychain / password manager (not committed to source control).
 > If lost, you can NEVER update this app on the Play Store.
 
 > ⏳ **Timeline**
