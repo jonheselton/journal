@@ -32,6 +32,9 @@ pubspec.lock
 *.tfstate.backup
 *.tfvars
 
+# Project planning
+PRD.json
+
 # Logs
 stderr.log
 stdout.log
