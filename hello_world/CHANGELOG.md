@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.1.1] — 2026-05-01
+
+### Security
+
+- Rotated upload keystore password — old password was committed to git history
+- Sanitized `DEV_STEPS.md` and `TODO.md` to remove hardcoded password references
+
+---
+
 ## [1.1.0] "Fourvel" — 2026-05-01
 
 ### Epic 1 — PIN Brute-Force Protection
