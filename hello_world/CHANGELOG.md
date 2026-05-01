@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [1.1.0] — 2026-04-18 (unreleased)
+## [1.1.0] "Fourvel" — 2026-05-01
 
 ### Epic 1 — PIN Brute-Force Protection
 

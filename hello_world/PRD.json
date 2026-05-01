@@ -2,168 +2,61 @@
   "product": "Daily Journal",
   "version": "1.2.0",
   "created": "2026-04-18",
-  "updated": "2026-04-18",
+  "updated": "2026-04-24",
   "status": "in_progress",
 
   "completed_epics": [
     {"id": "E1", "title": "PIN Brute-Force Protection", "completed": "2026-04-18"},
     {"id": "E2", "title": "Rename xanax → x", "completed": "2026-04-18"},
-    {"id": "E3", "title": "Keyword Privacy", "completed": "2026-04-18"},
-    {"id": "E4", "title": "Questionnaire Trigger Rework", "completed": "2026-04-18"}
+    {"id": "E3", "title": "Keyword Privacy", "completed": "2026-04-19"},
+    {"id": "E4", "title": "Questionnaire Trigger Rework", "completed": "2026-04-19"},
+    {"id": "E6", "title": "Questionnaire Cleanup (Remove Clouds/Bubs)", "completed": "2026-04-20"},
+    {"id": "E7", "title": "Database Cleanup (Drop Legacy Columns)", "completed": "2026-04-20"},
+    {"id": "E8", "title": "UX Polish & Logging Fixes", "completed": "2026-04-20"}
   ],
 
   "epics": [
     {
-      "id": "E6",
-      "title": "Questionnaire Cleanup",
+      "id": "E5",
+      "title": "Play Store Publishing",
       "priority": "high",
       "tasks": [
         {
-          "id": "E6-T1",
-          "status": "done",
-          "title": "Remove clouds and bubs from wizard",
-          "files": ["lib/screens/wizard_screen.dart"],
-          "done_when": "Wizard has 5 pages. No references to _clouds or _bubs in wizard_screen.dart. flutter analyze clean."
-        },
-        {
-          "id": "E6-T2",
-          "status": "done",
-          "title": "Skip wizard on entry creation",
-          "files": ["lib/screens/day_list_screen.dart"],
-          "done_when": "Tapping + on DayListScreen goes directly to DayEntryScreen without showing the wizard. No WizardScreen import in day_list_screen.dart."
-        },
-        {
-          "id": "E6-T3",
-          "status": "done",
-          "title": "Keep Add Details button on DayEntryScreen",
-          "files": ["lib/screens/day_entry_screen.dart"],
-          "done_when": "Psychology icon button exists in app bar with tooltip 'Add Details'. Tapping it launches WizardScreen. Wizard result updates entry fields (excluding clouds/bubs)."
-        },
-        {
-          "id": "E6-T4",
-          "status": "done",
-          "title": "Remove clouds/bubs from display chips and statistics",
-          "files": [
-            "lib/screens/day_entry_screen.dart",
-            "lib/services/database_service.dart"
-          ],
-          "done_when": "No 'Clouds' or 'Bubs' chips on DayEntryScreen wizard card. getWizardAverages() returns only Mood, Sleep, Workload, Energy. Statistics screen shows 4 check-in metrics instead of 6."
-        },
-        {
-          "id": "E6-T5",
-          "status": "pending_verification",
-          "title": "Verify on device: entry creation flow and wizard button",
-          "files": [],
-          "tests": {
-            "manual": true,
-            "cases": [
-              "Tap + on main screen → goes directly to editor (no wizard)",
-              "Tap 🧠 Add Details button → opens wizard with 5 pages (no clouds/bubs)",
-              "Complete wizard → chips show Mood, Sleep, X, Work, Energy only",
-              "Statistics screen shows 4 check-in averages (no Clouds/Bubs)",
-              "Existing entries with clouds/bubs data still load without errors"
-            ]
-          },
-          "done_when": "All 5 manual test cases pass on Pixel 6a."
-        }
-      ]
-    },
-
-    {
-      "id": "E5",
-      "title": "Play Store Publishing",
-      "priority": "low",
-      "tasks": [
-        {
           "id": "E5-T1",
-          "status": "not_started",
+          "status": "ready",
           "title": "Host privacy policy at public URL",
-          "files": [],
-          "done_when": "Privacy policy is live at a public HTTPS URL and renders correctly in a browser."
+          "files": ["store/privacy_policy.html"],
+          "done_when": "Privacy policy is live at a public HTTPS URL and linked in Play Console."
         },
         {
           "id": "E5-T2",
-          "status": "not_started",
-          "title": "Register Google Play Developer account",
+          "status": "in_progress",
+          "title": "Register & Setup Google Play Developer account",
           "files": [],
-          "done_when": "Play Console dashboard is accessible with an active, verified developer account."
+          "done_when": "Play Console dashboard is accessible and identity verification is complete."
         },
         {
           "id": "E5-T3",
-          "status": "not_started",
+          "status": "done",
           "title": "Build release AAB",
-          "depends_on": ["E6-T5"],
-          "files": [],
-          "done_when": "flutter build appbundle --release produces app-release.aab under 50MB with no errors."
+          "files": ["build/app/outputs/bundle/release/app-release.aab"],
+          "done_when": "AAB produced successfully (Verified: Existing at hello_world/build/...)"
         },
         {
           "id": "E5-T4",
           "status": "not_started",
-          "title": "Submit to Play Console",
+          "title": "Submit to Play Console (Internal/Production)",
           "depends_on": ["E5-T1", "E5-T2", "E5-T3"],
           "files": [],
-          "done_when": "App is uploaded with complete store listing, linked privacy policy, and status shows 'In review' or 'Published'."
+          "done_when": "App is uploaded to a testing or production track."
         },
         {
           "id": "E5-T5",
           "status": "not_started",
           "title": "Complete Health Connect declaration",
           "depends_on": ["E5-T4"],
-          "files": [],
-          "done_when": "Health Connect declaration submitted in Play Console for steps, heart rate, and sleep data types."
-        }
-      ]
-    },
-
-    {
-      "id": "E7",
-      "title": "Database Cleanup: Remove clouds/bubs columns",
-      "priority": "medium",
-      "tasks": [
-        {
-          "id": "E7-T1",
-          "status": "done",
-          "title": "Schema migration v2 → v3: drop clouds and bubs columns",
-          "files": ["lib/services/database_service.dart"],
-          "done_when": "Bump _dbVersion to 3. _onUpgrade rebuilds day_entries without clouds/bubs columns. _onCreate creates table without them. Existing data migrates cleanly (columns dropped, no data loss on other fields). flutter analyze clean."
-        },
-        {
-          "id": "E7-T2",
-          "status": "done",
-          "title": "Remove clouds/bubs from DayEntry model",
-          "depends_on": ["E7-T1"],
-          "files": ["lib/models/day_entry.dart"],
-          "done_when": "DayEntry class has no clouds or bubs field. Constructor, copyWith, toJson, fromJson, toDatabaseMap, fromDatabaseMap all omit clouds/bubs. flutter analyze clean across all files."
-        },
-        {
-          "id": "E7-T3",
-          "status": "done",
-          "title": "Verify no remaining references to clouds/bubs in codebase",
-          "depends_on": ["E7-T2"],
-          "files": [],
-          "done_when": "grep -ri 'clouds\\|bubs' lib/ returns zero matches. flutter analyze clean. App builds and runs on device."
-        }
-      ]
-    },
-
-    {
-      "id": "E8",
-      "title": "UX Polish",
-      "priority": "low",
-      "tasks": [
-        {
-          "id": "E8-T1",
-          "status": "done",
-          "title": "Fix Health Connect permission spam in logs",
-          "files": ["lib/services/health_service.dart"],
-          "done_when": "Permission check runs once per app session, not repeatedly. Device logs show 'permissions were granted' at most once per launch."
-        },
-        {
-          "id": "E8-T2",
-          "status": "done",
-          "title": "Add empty-state prompt to entry editor",
-          "files": ["lib/screens/day_entry_screen.dart"],
-          "done_when": "When a new entry is opened with default wizard values, a subtle banner or prompt says 'Tap 🧠 to add your daily check-in details'. Banner disappears after wizard is completed."
+          "files": ["store/health_connect_declaration.md"],
+          "done_when": "Google approval received for health data access."
         }
       ]
     }
@@ -173,14 +66,13 @@
     "commands": [
       "flutter analyze",
       "flutter test",
-      "flutter build apk --release"
+      "flutter build appbundle --release"
     ],
     "criteria": [
       "Zero analyzer errors",
-      "All unit and widget tests pass",
-      "Release APK builds successfully",
-      "No references to 'xanax' remain in lib/ directory",
-      "Wizard shows exactly 5 pages (mood, sleep, x, workload, energy)"
+      "All security-hardened features verified on device",
+      "No references to 'xanax', 'clouds', or 'bubs' remain in active code",
+      "Privacy policy renders correctly in mobile browsers"
     ]
   }
 }

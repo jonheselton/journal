@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy – Daily Journal</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --text: #e2e4eb;
+            --muted: #9196a8;
+            --accent: #6c63ff;
+            --border: rgba(255,255,255,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .last-updated {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+        }
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+        p, li {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        ul {
+            padding-left: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        li { margin-bottom: 0.35rem; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 2rem 0;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 2rem 1.25rem; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: April 26, 2026</p>
+
+        <p>Daily Journal ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how our mobile application handles your information.</p>
+
+        <h2>1. Information We Collect</h2>
+        <p>Daily Journal is designed with privacy as a core principle. All journal entries, health data, and personal information are stored <strong>locally on your device only</strong>. We do not collect, transmit, or store any personal data on external servers.</p>
+        <ul>
+            <li><strong>Journal Entries:</strong> Stored locally in an encrypted database on your device.</li>
+            <li><strong>Health Data:</strong> Accessed via Android Health Connect and stored locally. We do not transmit health data off your device.</li>
+            <li><strong>Authentication Data:</strong> Your PIN and biometric preferences are stored securely on-device using platform-native secure storage.</li>
+        </ul>
+
+        <h2>2. Data Storage &amp; Security</h2>
+        <p>All data is encrypted at rest using SQLCipher and stored exclusively on your device. We use Flutter Secure Storage for sensitive credentials. No cloud sync, no analytics, no tracking.</p>
+
+        <h2>3. Third-Party Services</h2>
+        <p>Daily Journal does not integrate with any third-party analytics, advertising, or tracking services. The app communicates only with Android Health Connect, which is a local on-device API.</p>
+
+        <h2>4. Data Sharing</h2>
+        <p>We do not sell, trade, or otherwise transfer your personal information to outside parties. Since all data remains on your device, there is nothing for us to share.</p>
+
+        <h2>5. Children's Privacy</h2>
+        <p>Daily Journal is not intended for use by children under the age of 13. We do not knowingly collect personal information from children.</p>
+
+        <h2>6. Your Rights</h2>
+        <p>Since all data is stored locally on your device, you have full control over it at all times. You can delete all app data by uninstalling the application or clearing app data through your device settings.</p>
+
+        <h2>7. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated "Last updated" date.</p>
+
+        <div class="divider"></div>
+
+        <h2>Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please contact us at:</p>
+        <p><a href="mailto:privacy@dailyjournal.app">privacy@dailyjournal.app</a></p>
+    </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package io.gencan.dailyjournal
+package com.gencan.journal
 
 import android.os.Bundle
 import android.view.WindowManager
