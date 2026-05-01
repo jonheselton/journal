@@ -1,0 +1,8 @@
+<en-US>
+v1.1.1 "Sprague" — Security Patch
+
+• Rotated upload keystore password for improved credential security
+• Removed hardcoded credentials from project documentation
+
+No functional changes. Your data and app experience remain exactly the same.
+</en-US>

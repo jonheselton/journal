@@ -1,6 +1,6 @@
 # Daily Journal TODO
 
-> **Current Release:** v1.1.1 (2026-05-01)
+> **Current Release:** v1.1.1 "Sprague" (2026-05-01)
 
 ---
 
@@ -8,8 +8,9 @@
 
 - [x] **Register Google Play Developer account** — Done, Play Console accessible
 - [x] **Host privacy policy** — Live at `https://storage.googleapis.com/lunawatch-93f3a-privacy-policy/index.html`
-- [x] **Build release AAB** — `com.gencan.journal` v1.1.0+3
+- [x] **Build release AAB** — `com.gencan.journal` v1.1.1+4 "Sprague"
 - [x] **Upload to Internal Testing track** — Fourvel release uploaded
+- [ ] **Upload Sprague release** — v1.1.1+4 AAB to Internal Testing
 - [ ] **Add testers & roll out** — Add email list, hit "Start rollout"
 - [ ] **Configure Store Listing** — App name, description, icon, screenshots
 - [ ] **Complete Health Connect declaration** — Required for steps, heart rate, sleep data

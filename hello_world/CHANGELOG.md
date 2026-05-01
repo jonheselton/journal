@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [1.1.1] — 2026-05-01
+## [1.1.1] "Sprague" — 2026-05-01
 
 ### Security
 
