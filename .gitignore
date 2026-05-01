@@ -25,3 +25,13 @@ pubspec.lock
 **/android/captures/
 **/android/gradlew
 **/android/gradlew.bat
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Logs
+stderr.log
+stdout.log
